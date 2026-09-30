@@ -1,0 +1,673 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>voiceToll admin</title>
+<script>
+  // Theme before first paint (Console Kit: dark-first, light is stepped, not inverted)
+  (function () { try { var t = localStorage.getItem("voicetoll.theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {} })();
+</script>
+<style>
+  :root, [data-theme="dark"] {
+    --bg:#0B0E13; --surface:#131821; --surface-raised:#10141B; --surface-2:#1A212C; --inset:#0F141C;
+    --line-soft:#1E2530; --line:#252D3A; --line-strong:#2C3646;
+    --fg:#E8ECF3; --fg-2:#9AA6B8; --fg-3:#7C8A9E; --fg-4:#55606F;
+    --accent:#3DDC97; --accent-hover:#6FE9B5; --accent-ink:#04231A; --accent-bg:#12211B; --accent-line:#1E4436;
+    --pos-bg:#12211B; --pos-line:#1E4436; --pos-ink:#6FE9B5; --pos:#3DDC97;
+    --warn-bg:#241D0F; --warn-line:#4A3A18; --warn-ink:#F5B544; --warn:#F5B544;
+    --neg-bg:#2A1414; --neg-line:#5A2626; --neg-ink:#FF7A7A; --neg:#FF7A7A;
+    --info-bg:#101A26; --info-line:#1E3A52; --info-ink:#6BA6FF; --info:#6BA6FF;
+    --idle:#55606F;
+    --wb-bg:#1A1710; --wb-line:#45361B; --wb-ink:#F5D9A0; --wb-body:#C9B58A;
+    --cat-1:#3987e5; --cat-2:#d95926; --cat-3:#199e70; --cat-4:#c98500; --cat-5:#d55181; --cat-6:#9085e9; --cat-muted:#5B6B83;
+    --chart-ok:#35BE86; --chart-slow:#E0A23C; --chart-bad:#E4595E; --chart-zero:#3B4557; --chart-track:#1D2430;
+    color-scheme: dark;
+  }
+  [data-theme="light"] {
+    --bg:#F4F6F5; --surface:#FFFFFF; --surface-raised:#FFFFFF; --surface-2:#F0F3F2; --inset:#E9EDEC;
+    --line-soft:#EBEFEE; --line:#DDE3E1; --line-strong:#C9D2CF;
+    --fg:#10171C; --fg-2:#4B5A63; --fg-3:#5E6B74; --fg-4:#8A959B;
+    --accent:#0A8158; --accent-hover:#086A48; --accent-ink:#FFFFFF; --accent-bg:#E7F5EF; --accent-line:#BFE3D4;
+    --pos-bg:#E7F5EF; --pos-line:#BFE3D4; --pos-ink:#07603F; --pos:#0A8158;
+    --warn-bg:#FDF6E7; --warn-line:#EBD9AE; --warn-ink:#8A5606; --warn:#96590A;
+    --neg-bg:#FDECEC; --neg-line:#F0C4C0; --neg-ink:#A32F23; --neg:#C0392B;
+    --info-bg:#EAF2FC; --info-line:#C7DCF5; --info-ink:#15529F; --info:#1B63C4;
+    --idle:#8A959B;
+    --wb-bg:#FDF6E7; --wb-line:#EBD9AE; --wb-ink:#5C4415; --wb-body:#7A5C22;
+    --cat-1:#2a78d6; --cat-2:#eb6834; --cat-3:#1baf7a; --cat-4:#eda100; --cat-5:#e87ba4; --cat-6:#4a3aa7; --cat-muted:#6E7A87;
+    --chart-ok:#158A60; --chart-slow:#B8730C; --chart-bad:#C0392B; --chart-zero:#B6C0BD; --chart-track:#E9EDEC;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 13px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  a { color: var(--accent); text-decoration: none; } a:hover { color: var(--accent-hover); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .mono, td.num, th.num { font-family: ui-monospace, Consolas, monospace; }
+  .label { font-size: 11px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--fg-3); }
+  .cap { font-size: 11.5px; color: var(--fg-3); }
+  .muted { color: var(--fg-2); }
+  .shell { display: flex; min-height: 100vh; }
+  nav.rail { width: 208px; flex-shrink: 0; padding: 20px 12px; background: var(--surface-raised); border-right: 1px solid var(--line);
+    display: flex; flex-direction: column; gap: 4px; position: sticky; top: 0; height: 100vh; }
+  .brand { display: flex; align-items: center; gap: 8px; padding: 0 10px 18px; font-weight: 600; font-size: 14px; }
+  .brand .mark { width: 22px; height: 22px; border-radius: 6px; background: var(--accent); }
+  .tag { display: inline-block; white-space: nowrap; padding: 1px 6px; border-radius: 5px; background: var(--surface-2); border: 1px solid var(--line-strong); color: var(--fg-2); font-size: 11px; font-weight: 400; }
+  nav.rail a { display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 34px; padding: 0 10px; border-radius: 8px; color: var(--fg-2); font-weight: 500; }
+  nav.rail a:hover { background: var(--surface-2); color: var(--fg); }
+  nav.rail a[aria-current="page"] { background: var(--accent-bg); color: var(--pos-ink); }
+  nav.rail a span.l { display: flex; align-items: center; gap: 8px; }
+  nav.rail .spacer { flex-grow: 1; }
+  main { flex-grow: 1; min-width: 0; padding: 24px 28px 48px; display: flex; flex-direction: column; gap: 20px; }
+  header.top { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  h1 { margin: 0; font-size: 25px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; }
+  h2 { margin: 0; font-size: 14px; font-weight: 600; }
+  .sub { margin: 4px 0 0; color: var(--fg-2); }
+  .controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+  .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px 10px; flex-wrap: wrap; }
+  .card-head .t { display: flex; align-items: baseline; gap: 10px; }
+  .card-body { padding: 0 16px 16px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 16px; }
+  .tile { padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .tile .v { font-family: ui-monospace, Consolas, monospace; font-size: 30px; font-weight: 600; letter-spacing: -0.025em; line-height: 1; }
+  .tile .v.sm { font-size: 19px; }
+  .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .grid2 > *, main > *, .card, .card-body { min-width: 0; }
+  .pill { display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 500; white-space: nowrap; border: 1px solid; }
+  .pill i { width: 6px; height: 6px; border-radius: 999px; display: inline-block; }
+  .pos { background: var(--pos-bg); border-color: var(--pos-line); color: var(--pos-ink); } .pos i { background: var(--pos); }
+  .warn { background: var(--warn-bg); border-color: var(--warn-line); color: var(--warn-ink); } .warn i { background: var(--warn); }
+  .neg { background: var(--neg-bg); border-color: var(--neg-line); color: var(--neg-ink); } .neg i { background: var(--neg); }
+  .info { background: var(--info-bg); border-color: var(--info-line); color: var(--info-ink); } .info i { background: var(--info); }
+  .idle { background: var(--surface-2); border-color: var(--line-strong); color: var(--fg-2); } .idle i { background: var(--idle); }
+  .tablewrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th { font-size: 11px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--fg-3); text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  td { padding: 9px 12px; border-bottom: 1px solid var(--line-soft); vertical-align: middle; }
+  tr:last-child td { border-bottom: 0; }
+  td.num, th.num { text-align: right; font-size: 12.5px; }
+  th button.sort { all: unset; cursor: pointer; } th button.sort:focus-visible { outline: 2px solid var(--accent); }
+  .btn { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--fg); font: inherit; font-size: 12.5px; cursor: pointer; }
+  .btn:hover { border-color: var(--fg-3); }
+  .btn.on { background: var(--accent-bg); border-color: var(--accent-line); color: var(--pos-ink); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  select, input[type=search], input[type=date], input[type=number], input[type=password] { height: 30px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--inset); color: var(--fg); font: inherit; font-size: 12.5px; padding: 0 8px; }
+  select { background: var(--surface-2); }
+  input[type=checkbox] { accent-color: var(--accent); }
+  .filters { padding: 12px 16px; display: flex; flex-direction: column; gap: 12px; }
+  .frow { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+  .field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .frow2 { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; border-top: 1px solid var(--line-soft); padding-top: 10px; }
+  .toggle { display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--fg-2); font: inherit; font-size: 12px; cursor: pointer; }
+  .toggle[aria-pressed="true"] { background: var(--accent-bg); border-color: var(--accent-line); color: var(--pos-ink); }
+  .chip { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 4px 0 10px; border-radius: 999px; background: var(--accent-bg); border: 1px solid var(--accent-line); color: var(--pos-ink); font-size: 12px; }
+  .chip button { width: 20px; height: 20px; border-radius: 999px; border: 0; background: transparent; color: inherit; cursor: pointer; font: inherit; padding: 0; }
+  .chip button:hover { background: var(--accent-line); }
+  .banner { display: flex; gap: 10px; align-items: flex-start; padding: 10px 14px; border-radius: 8px; border: 1px solid; }
+  .banner.warn { background: var(--wb-bg); border-color: var(--wb-line); color: var(--wb-body); } .banner.warn b { color: var(--wb-ink); }
+  .banner.neg { background: var(--neg-bg); border-color: var(--neg-line); color: var(--fg); } .banner.neg b { color: var(--neg-ink); }
+  .banner.info { background: var(--info-bg); border-color: var(--info-line); color: var(--fg); } .banner.info b { color: var(--info-ink); }
+  .banner p { margin: 0; }
+  .bar { height: 6px; border-radius: 999px; background: var(--chart-track); overflow: hidden; }
+  .bar > div { height: 100%; border-radius: 999px; }
+  .hbar { display: grid; grid-template-columns: minmax(90px, 180px) minmax(0, 1fr) 90px; gap: 10px; align-items: center; }
+  .hbar .track { height: 10px; border-radius: 999px; background: var(--chart-track); overflow: hidden; } .hbar .track > div { height: 100%; border-radius: 999px; }
+  .stack { display: flex; gap: 3px; height: 160px; border-bottom: 1px solid var(--chart-zero); align-items: stretch; }
+  .stack .col { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; justify-content: flex-end; gap: 1px; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 11.5px; color: var(--fg-2); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; } .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .reading { font-size: 11.5px; color: var(--fg-2); margin: 10px 0 0; }
+  .cell { width: 12px; height: 12px; border-radius: 4px; display: inline-block; border: 1px solid var(--chart-track); }
+  pre.yaml { margin: 0; padding: 12px; background: var(--inset); border: 1px solid var(--line-soft); border-radius: 8px; font: 12px/1.6 ui-monospace, Consolas, monospace; white-space: pre; overflow-x: auto; }
+  code { font: 12px ui-monospace, Consolas, monospace; background: var(--inset); border: 1px solid var(--line-soft); border-radius: 5px; padding: 0 4px; }
+  .empty { padding: 24px 16px; color: var(--fg-2); }
+  .keybox { max-width: 460px; margin: 12vh auto; padding: 24px; }
+  .keybox form { display: flex; gap: 8px; margin-top: 12px; } .keybox input { flex-grow: 1; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .spark { display: flex; gap: 2px; height: 110px; align-items: flex-end; border-bottom: 1px solid var(--chart-zero); }
+  .spark > div { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; justify-content: flex-end; gap: 1px; }
+  .warnrow { display: grid; grid-template-columns: 150px 220px minmax(0, 1fr); gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line-soft); }
+  @media (max-width: 900px) {
+    .shell { flex-direction: column; } nav.rail { width: auto; height: auto; position: static; flex-direction: row; flex-wrap: wrap; }
+    nav.rail .spacer, nav.rail .cap { display: none; } .grid2 { grid-template-columns: 1fr; } main { padding: 16px; }
+    pre.yaml { white-space: pre-wrap; } .warnrow { grid-template-columns: 1fr; gap: 2px; }
+    .btn, select, input, .toggle { min-height: 44px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  @media print { nav.rail, .filters, .controls { display: none !important; } .card { break-inside: avoid; } }
+</style>
+</head>
+<body>
+<div class="shell">
+  <nav class="rail" aria-label="Admin sections">
+    <div class="brand"><span class="mark" aria-hidden="true"></span>voiceToll <span class="tag">admin</span></div>
+    <a href="#view=prices" data-view="prices"><span class="l">Prices</span><span id="badge-prices"></span></a>
+    <a href="#view=reports" data-view="reports"><span class="l">Reports</span><span id="badge-reports"></span></a>
+    <a href="#view=cost" data-view="cost"><span class="l">Cost</span><span id="badge-cost"></span></a>
+    <a href="#view=health" data-view="health"><span class="l">Health</span><span id="badge-health"></span></a>
+    <div class="spacer"></div>
+    <button class="btn" id="themeBtn" type="button" aria-label="Switch colour theme">Light theme</button>
+    <div class="cap" id="replica" style="padding: 8px 10px 0"></div>
+    <a href="#" id="signOut">Sign out</a>
+  </nav>
+  <main id="main" aria-live="polite"><div class="empty">Loading…</div></main>
+</div>
+<script>
+(function () {
+  "use strict";
+  const ADMIN_KEY_STORE = "voicetoll.adminKey";
+  const main = document.getElementById("main");
+  let projects = [];
+  let lastHealth = null;
+  let healthTimer = null;
+
+  // ---------- small helpers ----------
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const usd = (n, d) => n == null ? "—" : "$" + Number(n).toLocaleString(undefined, { minimumFractionDigits: d ?? (Math.abs(n) < 1 ? 4 : 2), maximumFractionDigits: d ?? (Math.abs(n) < 1 ? 4 : 2) });
+  const pct = (x, d = 1) => x == null ? "—" : (x * 100).toFixed(d) + "%";
+  const num = (n) => n == null ? "—" : Number(n).toLocaleString();
+  const ago = (epoch) => { if (!epoch) return "never"; const s = Date.now() / 1000 - epoch; if (s < 60) return `${Math.round(s)} s ago`; if (s < 3600) return `${Math.round(s / 60)} min ago`; if (s < 86400) return `${Math.round(s / 3600)} h ago`; return `${Math.round(s / 86400)} d ago`; };
+  const utc = (epoch) => new Date(epoch * 1000).toISOString().replace("T", " ").slice(0, 19) + " UTC";
+  const change = (now, before) => (before == null || !before) ? null : (now - before) / before;
+  const changeText = (now, before, fmt) => { const c = change(now, before); return c == null ? "no prior period" : `${c >= 0 ? "up" : "down"} ${Math.abs(c * 100).toFixed(1)}% from ${fmt(before)}`; };
+  const lagText = (s) => s == null ? "—" : s < 120 ? `${s} s` : s < 7200 ? `${Math.round(s / 60)} min` : `${(s / 3600).toFixed(1)} h`;
+  const pill = (kind, text) => `<span class="pill ${esc(kind)}"><i aria-hidden="true"></i>${esc(text)}</span>`;
+  const stateKind = (s) => ({ healthy: "pos", loaded: "pos", degraded: "warn", failing: "neg" }[s] || "idle");
+  const COMPONENT_COLORS = { stt: "var(--cat-1)", llm: "var(--cat-2)", tts: "var(--cat-3)", s2s: "var(--cat-4)", telephony: "var(--cat-5)", platform: "var(--cat-6)" };
+  let palette = {};  // dimension -> every value seen in the range, sorted: the colour follows the entity, not its rank
+  function colorFor(key, by) {
+    if (by === "component" && COMPONENT_COLORS[key]) return COMPONENT_COLORS[key];
+    if (key === "Other" || key == null) return "var(--cat-muted)";
+    const known = palette[by] || []; const i = known.indexOf(key);
+    if (i >= 0 && known.length <= 6) return `var(--cat-${i + 1})`;
+    let h = 0; for (const ch of String(key)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;  // colour follows the entity, not its rank
+    return `var(--cat-${(h % 6) + 1})`;
+  }
+  function getKey() { try { return sessionStorage.getItem(ADMIN_KEY_STORE) || ""; } catch { return ""; } }
+  function setKey(k) { try { k ? sessionStorage.setItem(ADMIN_KEY_STORE, k) : sessionStorage.removeItem(ADMIN_KEY_STORE); } catch {} }
+  class AuthError extends Error {}
+  async function api(path) {
+    const headers = {}; const key = getKey();
+    if (key) headers["X-Voicetoll-Admin-Key"] = key;
+    const res = await fetch(path, { headers, cache: "no-store" });
+    if (res.status === 401 || res.status === 404) throw new AuthError(res.status === 404 ? "off" : "rejected");
+    if (!res.ok) { let msg = `${res.status}`; try { msg = (await res.json()).error || msg; } catch {} throw new Error(msg); }
+    return res.json();
+  }
+
+  // ---------- routing (hash holds the view and its filters, so every screen is linkable) ----------
+  function route() { const p = new URLSearchParams(location.hash.slice(1)); const o = Object.fromEntries(p.entries()); o.view = o.view || "prices"; return o; }
+  function go(patch, replace) {
+    const next = { ...route(), ...patch };
+    const p = new URLSearchParams();
+    for (const [k, v] of Object.entries(next)) if (v !== "" && v != null && v !== false) p.set(k, v);
+    const hash = "#" + p.toString();
+    if (replace) history.replaceState(null, "", hash); else location.hash = hash;
+    if (replace) render();
+  }
+  const list = (v) => (v ? String(v).split(",").filter(Boolean) : []);
+
+  // ---------- shared pieces ----------
+  function header(title, sub, controlsHtml) {
+    return `<header class="top"><div><h1>${esc(title)}</h1><p class="sub">${sub}</p></div><div class="controls">${controlsHtml}</div></header>`;
+  }
+  function projectSelect(allowAll) {
+    const r = route(); const current = r.project || (allowAll ? "" : (projects[0] || {}).project || "");
+    const opts = (allowAll ? `<option value="">All projects</option>` : "") + projects.map((p) => `<option value="${esc(p.project)}" ${p.project === current ? "selected" : ""}>${esc(p.project)}</option>`).join("");
+    return `<label class="label" for="projSel">Project</label><select id="projSel">${opts}</select>`;
+  }
+  function rangeButtons() {
+    const days = route().days || "30";
+    return ["7", "30", "90"].map((d) => `<button class="btn ${d === days ? "on" : ""}" type="button" data-days="${d}" aria-pressed="${d === days}">${d} d</button>`).join("");
+  }
+  function wireHeader() {
+    const sel = document.getElementById("projSel"); if (sel) sel.onchange = () => go({ project: sel.value });
+    main.querySelectorAll("[data-days]").forEach((b) => b.onclick = () => go({ days: b.dataset.days }));
+  }
+  function tile(label, value, note, extra = "", small = false) {
+    return `<div class="card tile"><div class="label">${esc(label)}</div><div class="v ${small ? "sm" : ""}">${value}</div><div class="cap">${note}</div>${extra}</div>`;
+  }
+  function card(title, body, sub = "", right = "", pad = true) {
+    return `<section class="card"><div class="card-head"><div class="t"><h2>${esc(title)}</h2><span class="cap">${sub}</span></div><div class="controls">${right}</div></div>${pad ? `<div class="card-body">${body}</div>` : body}</section>`;
+  }
+  function field(label, id, control) { return `<div class="field"><label class="label" for="${id}">${esc(label)}</label>${control}</div>`; }
+  function select(id, options, value, width = 150, allLabel = "All") {
+    const opts = `<option value="">${esc(allLabel)}</option>` + options.map((o) => { const [v, t] = Array.isArray(o) ? o : [o, o]; return `<option value="${esc(v)}" ${String(v) === String(value ?? "") ? "selected" : ""}>${esc(t)}</option>`; }).join("");
+    return `<select id="${id}" data-f="${id}" style="width:${width}px">${opts}</select>`;
+  }
+  function filterBar(fieldsHtml, toggles, chips, countText) {
+    const t = toggles.map(([key, text, on]) => `<button class="toggle" type="button" data-toggle="${esc(key)}" aria-pressed="${on}">${esc(text)}</button>`).join("");
+    const c = chips.map(([key, text]) => `<span class="chip">${esc(text)}<button type="button" data-clear="${esc(key)}" aria-label="Remove filter ${esc(text)}">×</button></span>`).join("");
+    return `<section class="card filters" aria-label="Filters"><div class="frow">${fieldsHtml}<div style="flex-grow:1"></div>
+      <button class="btn" type="button" id="saveView">Save view</button><select id="savedViews" aria-label="Saved views"><option value="">Saved views</option>${savedViews().map((v, i) => `<option value="${i}">${esc(v.name)}</option>`).join("")}</select>
+      <button class="btn" type="button" id="resetFilters">Reset</button></div>
+      <div class="frow2"><div class="controls">${toggles.length ? `<span class="label">Show</span>${t}` : ""}</div><div class="controls">${c}<span class="cap">${countText}</span></div></div></section>`;
+  }
+  function savedViews() { try { return JSON.parse(localStorage.getItem("voicetoll.adminViews") || "[]"); } catch { return []; } }
+  function wireFilters(keys, toggleKey, defaults = []) {
+    keys.forEach((k) => { const el = document.getElementById(k); if (!el) return; const ev = el.tagName === "SELECT" ? "change" : "input";
+      let t; el.addEventListener(ev, () => { clearTimeout(t); t = setTimeout(() => go({ [k]: el.value }, true), el.type === "search" ? 250 : 0); }); });
+    main.querySelectorAll("[data-toggle]").forEach((b) => b.onclick = () => {
+      const cur = route()[toggleKey];
+      const on = new Set(cur ? list(cur).filter((x) => x !== "none") : defaults); const k = b.dataset.toggle; on.has(k) ? on.delete(k) : on.add(k);
+      go({ [toggleKey]: [...on].join(",") || "none" }, true);
+    });
+    main.querySelectorAll("[data-clear]").forEach((b) => b.onclick = () => go({ [b.dataset.clear]: "" }, true));
+    const reset = document.getElementById("resetFilters");
+    if (reset) reset.onclick = () => { const r = route(); location.hash = `#view=${r.view}` + (r.scope ? `&scope=${r.scope}` : "") + (r.project ? `&project=${encodeURIComponent(r.project)}` : "") + (r.days ? `&days=${r.days}` : ""); };
+    const save = document.getElementById("saveView");
+    if (save) save.onclick = () => { const name = prompt("Name this view"); if (!name) return; const v = savedViews(); v.push({ name, hash: location.hash }); try { localStorage.setItem("voicetoll.adminViews", JSON.stringify(v)); } catch {} render(); };
+    const saved = document.getElementById("savedViews");
+    if (saved) saved.onchange = () => { const v = savedViews()[Number(saved.value)]; if (v) location.hash = v.hash; };
+  }
+  function banner(kind, lead, body) { return `<div class="banner ${kind}" role="status">${pill(kind === "warn" ? "warn" : kind, kind === "warn" ? "warning" : kind === "neg" ? "failing" : "note")}<p><b>${lead}</b> ${body}</p></div>`; }
+  function hbars(rows, by, total) {
+    const top = rows.slice(0, 6); const rest = rows.slice(6); if (rest.length) top.push({ key: "Other", cost_usd: rest.reduce((s, r) => s + r.cost_usd, 0), calls: null });
+    const max = Math.max(...top.map((r) => r.cost_usd), 1e-12);
+    if (!top.length) return `<div class="empty">No cost in this range.</div>`;
+    return `<div style="display:flex;flex-direction:column;gap:12px">` + top.map((r) => `<div class="hbar"><div><div style="font-weight:500">${esc(r.key ?? "(none)")}</div><div class="cap">${pct(total ? r.cost_usd / total : 0)}</div></div>
+      <div class="track"><div style="width:${(r.cost_usd / max * 100).toFixed(1)}%;background:${colorFor(r.key, by)}"></div></div><div class="mono" style="text-align:right">${usd(r.cost_usd, 2)}</div></div>`).join("") + `</div>`;
+  }
+
+  // ---------- Prices ----------
+  const PRICE_TOGGLES = [["stale", "Stale"], ["unverified", "Unverified"], ["unpriced", "Unpriced"], ["drifting", "Drifting"], ["expiring", "Expiring"], ["fell back to list", "Fell back to list"], ["verified", "Verified"], ["rate card", "Rate card"]];
+  const ATTENTION = ["stale", "unverified", "unpriced", "drifting", "expiring", "fell back to list", "stale list"];
+  function scopeToggle(scope) {
+    return `<div class="controls" role="group" aria-label="Which prices" style="gap:0">${[["", "In use"], ["all", "All available"]].map(([v, t], i) =>
+      `<button class="btn ${scope === v ? "on" : ""}" type="button" data-scope="${v}" aria-pressed="${scope === v}" style="border-radius:${i ? "0 8px 8px 0" : "8px 0 0 8px"};${i ? "margin-left:-1px" : ""}">${t}</button>`).join("")}</div>`;
+  }
+  function wireScope() { main.querySelectorAll("[data-scope]").forEach((b) => b.onclick = () => go({ scope: b.dataset.scope, off: "", pick: "" })); }
+  async function renderPrices() {
+    const r = route(); const days = r.days || "30";
+    if (r.scope === "all") return renderCatalog();
+    const data = await api(`/v1/admin/prices?days=${days}` + (r.project ? `&project=${encodeURIComponent(r.project)}` : ""));
+    badge("prices", data.summary.stale_rates ? pill("warn", `${data.summary.stale_rates} stale`) : "");
+    const tagsOn = r.tags === "none" ? [] : list(r.tags);
+    const q = (r.q || "").toLowerCase(); const minShare = Number(r.share || 0) / 100;
+    const rows = data.rows.filter((row) => {
+      if (q && ![row.provider, row.model, row.meter].join(" ").toLowerCase().includes(q)) return false;
+      if (r.provider && row.provider !== r.provider) return false;
+      if (r.stage && row.component !== r.stage) return false;
+      if (r.source && row.price_source !== r.source) return false;
+      if (row.share < minShare) return false;
+      if (tagsOn.length) { const texts = row.tags.map((t) => t.text); if (!tagsOn.some((t) => texts.includes(t) || (t === "stale" && texts.includes("stale list")) || (t === "rate card" && row.price_source === "rate_card"))) return false; }
+      return true;
+    });
+    const s = data.summary;
+    const providers = [...new Set(data.rows.map((x) => x.provider).filter(Boolean))].sort();
+    const stages = [...new Set(data.rows.map((x) => x.component).filter(Boolean))].sort();
+    let html = header("Prices in use", "Which prices your dollars rest on, and which of them need a look.", scopeToggle("") + projectSelect(true) + rangeButtons());
+    const chips = []; if (tagsOn.length && tagsOn.join() === ATTENTION.slice(0, 6).join()) chips.push(["tags", "Needs attention"]);
+    ["provider", "stage", "source"].forEach((k) => r[k] && chips.push([k, `${k}: ${r[k]}`])); if (r.q) chips.push(["q", `“${r.q}”`]); if (minShare) chips.push(["share", `share ≥ ${r.share}%`]);
+    html += filterBar(
+      field("Search", "q", `<input type="search" id="q" placeholder="Provider, model or meter" value="${esc(r.q || "")}" style="width:220px">`) +
+      field("Provider", "provider", select("provider", providers, r.provider, 150, "All providers")) +
+      field("Stage", "stage", select("stage", stages, r.stage, 120, "All stages")) +
+      field("Price source", "source", select("source", [["rate_card", "Rate card"], ["voice_prices", "voice-prices"], ["not_billed", "Not billed"], ["unpriced", "Unpriced"]], r.source, 150, "Any source")) +
+      field("Min share of spend %", "share", `<input type="number" id="share" min="0" max="100" step="1" value="${esc(r.share || 0)}" style="width:90px">`) +
+      `<button class="btn" type="button" id="attention">Needs attention</button>`,
+      PRICE_TOGGLES.map(([k, t]) => [k, t, tagsOn.includes(k)]), chips, `Showing ${rows.length} of ${data.rows.length} rates`);
+    if (s.stale_rates) {
+      const biggest = data.rows.filter((x) => x.stale).sort((a, b) => b.cost_usd - a.cost_usd)[0];
+      html += banner("warn", `${s.stale_rates} rate${s.stale_rates > 1 ? "s" : ""} in use ${s.stale_rates > 1 ? "are" : "is"} stale or unverified, so ${pct(s.stale_share)} of priced spend rests on prices nobody has checked recently.`,
+        biggest ? `The largest is ${esc(biggest.provider)} ${esc(biggest.model)} (${esc(biggest.meter)}) at ${pct(biggest.share)} of spend.` : "");
+    }
+    if (data.versions.rate_card_error) html += banner("neg", "The rate card file did not load, so the previous rates are still in use.", esc(data.versions.rate_card_error));
+    const reprice = data.versions.last_auto_reprice;
+    html += `<div class="tiles">
+      ${tile("Spend on stale or unverified rates", pct(s.stale_share), `${usd(s.stale_spend_usd, 2)} of ${usd(s.priced_spend_usd, 2)} priced spend`, `<div class="bar"><div style="width:${(s.stale_share * 100).toFixed(1)}%;background:var(--chart-slow)"></div></div>`)}
+      ${tile("Rates in use", num(s.rates_in_use), `${s.unpriced_pairs} provider · model pair${s.unpriced_pairs === 1 ? "" : "s"} unpriced`)}
+      ${tile("Stale rates", num(s.stale_rates), "list prices past their check window, or rate cards past review")}
+      ${tile("Unpriced cost lines", pct(s.unpriced_share), s.prior_unpriced_share == null ? "no prior period" : `vs ${pct(s.prior_unpriced_share)} prior ${days} d`)}
+      ${tile("Price data", esc(data.versions.price_version.replace("voice-prices ", "")), `voice-prices · rate card ${esc(data.versions.rate_card_version || "none")}${reprice && reprice.at ? ` · last auto-reprice ${esc(String(reprice.at).slice(0, 16))}` : ""}`, "", true)}
+    </div>`;
+    const sortKey = r.sort || "cost_usd";
+    const sorted = [...rows].sort((a, b) => sortKey === "provider" ? String(a.provider).localeCompare(String(b.provider)) : sortKey === "last" ? (b.last_seen_epoch || 0) - (a.last_seen_epoch || 0) : (b[sortKey] || 0) - (a[sortKey] || 0));
+    const sortTh = (key, text, cls = "") => `<th class="${cls}" aria-sort="${sortKey === key ? "descending" : "none"}"><button class="sort" type="button" data-sort="${key}">${text}${sortKey === key ? " ↓" : ""}</button></th>`;
+    const body = sorted.map((row) => {
+      const check = row.price_source === "rate_card" && row.rate_card
+        ? `${row.rate_card.reviewed ? `reviewed ${esc(row.rate_card.reviewed)}` : "not reviewed"}${row.rate_card.note ? ` · ${esc(row.rate_card.note)}` : ""}${row.rate_card.effective_to ? ` · until ${esc(row.rate_card.effective_to)}` : ""}`
+        : row.freshness && row.freshness.last_verified ? `checked ${esc(row.freshness.last_verified)} · ${esc(row.freshness.age_days)} d` : row.unpriced_reason ? `<code>${esc(row.unpriced_reason)}</code>` : "—";
+      return `<tr><td><div style="font-weight:500">${esc(row.provider ?? "(none)")}</div><div class="cap mono">${esc(row.model ?? "(none)")}</div></td>
+        <td class="mono cap">${esc(row.meter)}</td>
+        <td class="num">${row.effective_price == null ? "—" : usd(row.effective_price)}<div class="cap" style="font-family:system-ui">${row.effective_price == null ? "" : esc(row.display_unit)}</div></td>
+        <td><span class="tag">${esc({ rate_card: "rate card", voice_prices: "voice-prices", not_billed: "not billed", unpriced: "unpriced" }[row.price_source] || row.price_source)}</span></td>
+        <td><div class="controls" style="gap:6px">${row.tags.map((t) => pill(t.kind, t.text)).join("")}</div></td>
+        <td class="cap" style="max-width:260px">${check}</td>
+        <td class="num">${usd(row.cost_usd, 2)}<div class="cap">${pct(row.share)}</div></td>
+        <td class="num">${num(row.events)}</td><td class="cap">${ago(row.last_seen_epoch)}</td></tr>`;
+    }).join("");
+    html += card("Rates in use", sorted.length ? `<div class="tablewrap"><table><thead><tr>${sortTh("provider", "Provider · model")}<th>Meter</th><th class="num">Effective price</th><th>Source</th><th>Tags</th><th>Last check</th>${sortTh("cost_usd", "Spend · share", "num")}${sortTh("events", "Events", "num")}${sortTh("last", "Last seen")}</tr></thead><tbody>${body}</tbody></table></div>` : `<div class="empty">No rates match these filters.</div>`,
+      `every provider · model · meter with cost in the last ${days} days · effective price = cost ÷ quantity`, "", false);
+    const unpriced = data.rows.filter((x) => x.price_source === "unpriced");
+    if (unpriced.length) {
+      const pick = unpriced[Number(r.pick || 0)] || unpriced[0];
+      const size = { characters: 1000, audio_input_seconds: 60, audio_output_seconds: 60 }[pick.meter] || (pick.meter.endsWith("tokens") ? 1000000 : 1);
+      const today = new Date().toISOString().slice(0, 10);
+      const yaml = `- provider: ${pick.provider}\n  model: ${pick.model}\n  meter: ${pick.meter}\n  unit_price: [YOUR PRICE]\n  unit_size: ${size}\n  effective_from: "${today.slice(0, 8)}01"\n  reviewed: "${today}"\n  note: "[WHY THIS RATE]"`;
+      html += card("Unpriced usage", `<div class="grid2"><div><div class="tablewrap"><table><thead><tr><th>Provider · model · meter</th><th>Reason</th><th class="num">Events</th><th></th></tr></thead><tbody>${unpriced.map((u, i) => `<tr><td><div style="font-weight:500">${esc(u.provider ?? "(none)")}</div><div class="cap mono">${esc(u.model ?? "(none)")} · ${esc(u.meter)}</div></td><td><code>${esc(u.unpriced_reason || "unknown")}</code></td><td class="num">${num(u.events)}</td><td><button class="btn" type="button" data-pick="${i}">Snippet</button></td></tr>`).join("")}</tbody></table></div>
+        <p class="reading">Unpriced lines are stored at $0 with a reason, so they never count as free. Add a rate card entry (or fix the model name the app sends); the collector reloads the file and re-costs recent history.</p></div>
+        <div><div class="controls" style="justify-content:space-between"><span class="label">Rate card entry for ${esc(pick.provider)} · ${esc(pick.model)}</span><button class="btn" type="button" id="copyYaml">Copy YAML</button></div>
+        <pre class="yaml" id="yaml" style="margin-top:8px">${esc(yaml)}</pre><p class="cap">Paste into the file named by <code>VOICETOLL_RATE_CARDS</code>.</p></div></div>`, `${unpriced.length} provider · model · meter combination${unpriced.length > 1 ? "s" : ""}`);
+    }
+    main.innerHTML = html; wireHeader(); wireScope();
+    wireFilters(["q", "provider", "stage", "source", "share"], "tags");
+    document.getElementById("attention").onclick = () => go({ tags: ATTENTION.slice(0, 6).join(",") }, true);
+    main.querySelectorAll("[data-sort]").forEach((b) => b.onclick = () => go({ sort: b.dataset.sort }, true));
+    main.querySelectorAll("[data-pick]").forEach((b) => b.onclick = () => go({ pick: b.dataset.pick }, true));
+    const copy = document.getElementById("copyYaml");
+    if (copy) copy.onclick = async () => { try { await navigator.clipboard.writeText(document.getElementById("yaml").textContent); copy.textContent = "Copied"; } catch { copy.textContent = "Select and copy"; } };
+  }
+
+  // ---------- Prices: all available (voice-prices catalog + rate cards) ----------
+  const KIND_LABELS = { llm: "LLM", stt: "Speech to text", tts: "Text to speech", s2s: "Speech to speech", platform: "Agent platform", telephony: "Telephony", other: "Other" };
+  const CATALOG_TOGGLES = [["in_use", "In use"], ["rate_card", "Rate card"], ["hide_free", "Hide free"], ["deprecated", "Include deprecated"]];
+  const METERS = ["input_tokens", "output_tokens", "cache_read_tokens", "input_audio_tokens", "output_audio_tokens", "characters", "audio_input_seconds", "audio_output_seconds", "agent_minutes", "telephony_minutes"];
+  const listPrice = (n) => n == null ? "—" : n === 0 ? "$0" : "$" + Number(Number(n).toPrecision(3)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 8 });
+  const PAGE = 100;
+  function rateCardYaml(row) {
+    const size = { "per 1M tokens": 1000000, "per 1K characters": 1000, "per 1K requests": 1000 };
+    const today = new Date().toISOString().slice(0, 10);
+    return row.prices.map((p) => {
+      let unitPrice = p.price, unitSize = size[p.unit] || 1;
+      if (p.unit === "per minute" && p.meter.endsWith("_seconds")) unitSize = 60;
+      return `- provider: ${row.provider}\n  model: ${row.model}\n  meter: ${p.meter}\n  unit_price: ${Number(unitPrice.toPrecision(6))}   # list price; replace with your rate\n  unit_size: ${unitSize}\n  effective_from: "${today.slice(0, 8)}01"\n  reviewed: "${today}"\n  note: "[WHY THIS RATE]"`;
+    }).join("\n");
+  }
+  async function renderCatalog() {
+    const r = route(); const days = r.days || "30";
+    const show = r.show === "none" ? [] : list(r.show);
+    const off = Math.max(0, Number(r.off || 0));
+    const qs = new URLSearchParams({ days, limit: String(PAGE), offset: String(off) });
+    if (r.q) qs.set("q", r.q); if (r.provider) qs.set("provider", r.provider); if (r.kind) qs.set("kind", r.kind);
+    if (r.status) qs.set("status", r.status); if (r.meter) qs.set("meter", r.meter);
+    if (show.includes("in_use")) qs.set("in_use", "1"); if (show.includes("rate_card")) qs.set("rate_card", "1");
+    if (show.includes("deprecated")) qs.set("deprecated", "1"); if (show.includes("hide_free")) qs.set("free", "0");
+    const data = await api(`/v1/admin/catalog?${qs}`);
+    let html = header("All available prices", "Every provider and model voiceToll can price without any setup, plus your rate-card entries. Send the provider and model ids shown here and calls are priced automatically.", scopeToggle("all"));
+    const chips = [];
+    ["provider", "kind", "status", "meter"].forEach((k) => r[k] && chips.push([k, `${k}: ${k === "kind" ? KIND_LABELS[r[k]] || r[k] : r[k]}`])); if (r.q) chips.push(["q", `“${r.q}”`]);
+    const from = data.matched ? off + 1 : 0, to = Math.min(off + PAGE, data.matched);
+    html += filterBar(
+      field("Search", "q", `<input type="search" id="q" placeholder="Provider or model" value="${esc(r.q || "")}" style="width:220px">`) +
+      field("Provider", "provider", select("provider", data.providers.map((p) => [p.id, `${p.name} (${p.models})`]), r.provider, 190, "All providers")) +
+      field("Kind", "kind", select("kind", Object.keys(KIND_LABELS).map((k) => [k, KIND_LABELS[k]]), r.kind, 150, "All kinds")) +
+      field("Meter", "meter", select("meter", METERS, r.meter, 170, "Any meter")) +
+      field("Price check", "status", select("status", [["verified", "Verified"], ["stale", "Stale"], ["imported", "Imported"], ["seed", "Seed"]], r.status, 130, "Any")),
+      CATALOG_TOGGLES.map(([k, t]) => [k, t, show.includes(k)]), chips, `${num(data.matched)} of ${num(data.total)} models`);
+    if (data.error) html += banner("neg", "The voice-prices catalog could not be listed.", `Only rate-card entries are shown (${esc(data.error)}).`);
+    const kindTiles = Object.entries(data.kinds).filter(([, n]) => n).map(([k, n]) => `<button class="btn ${r.kind === k ? "on" : ""}" type="button" data-kind="${k}">${esc(KIND_LABELS[k] || k)} <span class="cap">${num(n)}</span></button>`).join("");
+    html += `<div class="tiles">
+      ${tile("Models available", num(data.total), `${num(data.providers.length)} providers · voice-prices ${esc(data.versions.voice_prices)}`)}
+      ${tile("In use", num(data.in_use_count), `seen in the last ${esc(days)} days`)}
+      ${tile("Sent under an unknown name", num(data.unmatched_in_use.length), data.unmatched_in_use.length ? "these calls are unpriced: see below" : "every model you use is in the catalog or a rate card")}
+    </div>`;
+    if (kindTiles) html += `<div class="controls" style="flex-wrap:wrap;gap:6px;margin:0 0 12px">${kindTiles}</div>`;
+    const body = data.rows.map((row, i) => {
+      const f = row.freshness || {};
+      const freshKind = { verified: "pos", stale: "warn", imported: "info", seed: "idle" }[f.status] || "idle";
+      const tags = [row.in_use ? pill("pos", "in use") : "", row.rate_card.length ? pill("info", row.rate_card.some((x) => x.wildcard) ? "rate card (all models)" : "rate card") : "",
+        row.origin === "rate_card" ? pill("info", "rate card only") : "", row.free ? pill("idle", "free") : "", row.deprecated ? pill("idle", "deprecated") : "", row.conditional ? pill("idle", "dated prices") : ""].join("");
+      const prices = row.prices.length ? row.prices.map((p) => `<div><span class="mono">${listPrice(p.price)}</span> <span class="cap">${esc(p.unit)}${p.tiered ? " · tiered" : ""}</span> <span class="cap">· ${esc(p.label)}</span> <code class="cap">${esc(p.meter)}</code></div>`).join("")
+        : `<span class="cap">${row.free ? "free" : "no list price"}</span>`;
+      const voices = row.voice_classes ? `<div class="cap">voice classes: ${Object.entries(row.voice_classes).map(([k, v]) => `${esc(k)} ×${v}`).join(", ")}</div>` : "";
+      return `<tr><td><div style="font-weight:500">${esc(row.provider_name || row.provider)}${row.pricing_tier ? ` <span class="cap">· ${esc(row.pricing_tier)}</span>` : ""}</div>
+          <div class="cap mono">${esc(row.provider)} · ${esc(row.model)}</div>${row.name && row.name !== row.model ? `<div class="cap">${esc(row.name)}</div>` : ""}${row.sent_as.length ? `<div class="cap">sent as ${row.sent_as.map((x) => `<code>${esc(x)}</code>`).join(", ")}</div>` : ""}</td>
+        <td class="cap">${esc(KIND_LABELS[row.kind] || row.kind)}</td>
+        <td>${prices}${voices}</td>
+        <td>${f.status ? pill(freshKind, f.status) : "—"}<div class="cap" style="white-space:nowrap">${f.last_verified ? `checked ${esc(f.last_verified)}` : row.origin === "rate_card" ? "your rate" : "never checked"}</div></td>
+        <td><div class="controls" style="gap:6px;flex-wrap:wrap">${tags}</div></td>
+        <td class="cap">${row.source_url ? `<a href="${esc(row.source_url)}" target="_blank" rel="noopener">pricing page</a>` : "—"}</td>
+        <td>${row.prices.length && row.origin !== "rate_card" ? `<button class="btn" type="button" data-cpick="${i}">Override</button>` : ""}</td></tr>`;
+    }).join("");
+    const pager = data.matched > PAGE ? `<div class="controls" style="gap:6px"><button class="btn" type="button" id="prevPage" ${off ? "" : "disabled"}>← Previous</button><span class="cap">${num(from)}–${num(to)} of ${num(data.matched)}</span><button class="btn" type="button" id="nextPage" ${to < data.matched ? "" : "disabled"}>Next →</button></div>` : "";
+    html += card("Models", data.rows.length ? `<div class="tablewrap"><table><thead><tr><th>Provider · model</th><th>Kind</th><th>List price</th><th>Price check</th><th>Status</th><th>Source</th><th></th></tr></thead><tbody>${body}</tbody></table></div>` : `<div class="empty">No models match these filters.</div>`,
+      `in use and rate-card entries first · prices are voice-prices list prices today, shown per the unit providers quote`, pager, false);
+    const pick = r.cpick != null && r.cpick !== "" ? data.rows[Number(r.cpick)] : null;
+    if (pick) {
+      html += card(`Rate card entry for ${pick.provider} · ${pick.model}`, `<div class="controls" style="justify-content:flex-end"><button class="btn" type="button" id="copyYaml">Copy YAML</button></div>
+        <pre class="yaml" id="yaml" style="margin-top:8px">${esc(rateCardYaml(pick))}</pre><p class="cap">You only need this when you pay a different rate than the list price (a contract, a plan discount, credits). Paste into the file named by <code>VOICETOLL_RATE_CARDS</code>; the collector reloads it and re-costs recent history.</p>`);
+    }
+    if (data.unmatched_in_use.length) {
+      html += card("Models you send that have no price", `<div class="tablewrap"><table><thead><tr><th>Provider · model as sent</th><th class="num">Events</th></tr></thead><tbody>${data.unmatched_in_use.map((u) => `<tr><td class="mono">${esc(u.provider)} · ${esc(u.model)}</td><td class="num">${num(u.events)}</td></tr>`).join("")}</tbody></table></div>
+        <p class="reading">These names match nothing in the catalog or your rate cards, so their calls are stored as unpriced. Find the model above and send its id, or add a rate card entry.</p>`, `last ${esc(days)} days`);
+    }
+    html += `<p class="reading">To use a model listed here, send its provider id and model id with each event (the framework adapters do this for you when you pass <code>providers=</code>). voiceToll prices it from this list automatically; a rate card entry only changes the rate.</p>`;
+    main.innerHTML = html; wireScope();
+    wireFilters(["q", "provider", "kind", "meter", "status"], "show");
+    const refilter = (patch) => go({ ...patch, off: "", cpick: "" }, true);
+    ["q", "provider", "kind", "meter", "status"].forEach((k) => { const el = document.getElementById(k); if (el) el.addEventListener(el.tagName === "SELECT" ? "change" : "input", () => { if (route().off || route().cpick) history.replaceState(null, "", location.hash.replace(/&?(off|cpick)=[^&]*/g, "")); }); });
+    main.querySelectorAll("[data-kind]").forEach((b) => b.onclick = () => refilter({ kind: route().kind === b.dataset.kind ? "" : b.dataset.kind }));
+    main.querySelectorAll("[data-cpick]").forEach((b) => b.onclick = () => go({ cpick: b.dataset.cpick }, true));
+    const prev = document.getElementById("prevPage"); if (prev) prev.onclick = () => go({ off: String(Math.max(0, off - PAGE)), cpick: "" }, true);
+    const next = document.getElementById("nextPage"); if (next) next.onclick = () => go({ off: String(off + PAGE), cpick: "" }, true);
+    const copy = document.getElementById("copyYaml");
+    if (copy) copy.onclick = async () => { try { await navigator.clipboard.writeText(document.getElementById("yaml").textContent); copy.textContent = "Copied"; } catch { copy.textContent = "Select and copy"; } };
+    if (pick) document.getElementById("yaml").scrollIntoView({ block: "center" });
+  }
+
+  // ---------- Reports ----------
+  async function renderReports() {
+    const r = route();
+    const project = r.project || (projects[0] || {}).project;
+    if (!project) { main.innerHTML = header("Reports", "No project has sent events yet.", "") + `<div class="card empty">Once an app sends events, each project gets a daily report here.</div>`; return; }
+    const data = await api(`/v1/admin/days?days=90&project=${encodeURIComponent(project)}`);
+    const todays = await Promise.all(projects.slice(0, 8).map((p) => api(`/v1/admin/days?days=1&project=${encodeURIComponent(p.project)}`).catch(() => null)));
+    const today = new Date().toISOString().slice(0, 10);
+    const from = r.from || data.days[Math.min(13, data.days.length - 1)].day; const to = r.to || today;
+    const tog = r.show === "none" ? [] : list(r.show);
+    const unpAbove = Number(r.unp || 0) / 100;
+    const all = data.days;
+    const rows = all.filter((d, i) => {
+      if (d.day < from || d.day > to) return false;
+      if (r.recon && (d.recon_status || "none") !== r.recon) return false;
+      if (d.unpriced_share < unpAbove) return false;
+      const prev = all[i + 1]; const c = prev ? change(d.cost_usd, prev.cost_usd) : null;
+      if (r.delta === "up" && !(c > 0.1)) return false; if (r.delta === "down" && !(c < -0.1)) return false;
+      if (tog.includes("highlights") && !d.highlights) return false;
+      if (tog.includes("drift") && d.recon_status !== "drift") return false;
+      if (tog.includes("weekdays")) { const wd = new Date(d.day + "T12:00:00Z").getUTCDay(); if (wd === 0 || wd === 6) return false; }
+      return true;
+    });
+    let html = header("Reports", "Open any project’s daily report with the admin key; no ingest key needed.", projectSelect(false));
+    const chips = []; if (r.recon) chips.push(["recon", `recon: ${r.recon}`]); if (unpAbove) chips.push(["unp", `unpriced > ${r.unp}%`]); if (r.delta) chips.push(["delta", r.delta === "up" ? "cost up > 10%" : "cost down > 10%"]);
+    html += filterBar(
+      field("From", "from", `<input type="date" id="from" value="${esc(from)}">`) + field("To", "to", `<input type="date" id="to" value="${esc(to)}">`) +
+      field("Estimate vs bill", "recon", select("recon", ["ok", "drift", "fetch_failed", "skipped_no_key", "no_connector", ["none", "not run"]], r.recon, 150, "Any status")) +
+      field("Unpriced above %", "unp", `<input type="number" id="unp" min="0" max="100" step="0.5" value="${esc(r.unp || 0)}" style="width:90px">`) +
+      field("Cost vs prior day", "delta", select("delta", [["up", "Up more than 10%"], ["down", "Down more than 10%"]], r.delta, 170, "Any")),
+      [["highlights", "With highlights", tog.includes("highlights")], ["drift", "Drift days", tog.includes("drift")], ["weekdays", "Weekdays only", tog.includes("weekdays")]], chips, `Showing ${rows.length} of ${all.filter((d) => d.day >= from && d.day <= to).length} days`);
+    html += `<div class="grid2">` + todays.map((t, i) => { if (!t) return ""; const n = t.today, y = t.yesterday_same_time; const p = projects[i].project;
+      const recon = t.days[0] && t.days[0].recon_status;
+      return `<section class="card" style="padding:16px;display:flex;flex-direction:column;gap:14px"><div class="controls" style="justify-content:space-between"><div class="controls"><h2>${esc(p)}</h2><span class="cap">today so far, UTC</span></div>${recon ? pill(recon === "ok" ? "pos" : recon === "drift" ? "neg" : "idle", recon) : ""}</div>
+        <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px">
+        <div><div class="label">Cost</div><div class="mono" style="font-size:19px;font-weight:600">${usd(n.cost_usd, 2)}</div><div class="cap">vs ${usd(y.cost_usd, 2)} same time yesterday</div></div>
+        <div><div class="label">Calls</div><div class="mono" style="font-size:19px;font-weight:600">${num(n.calls)}</div><div class="cap">vs ${num(y.calls)}</div></div>
+        <div><div class="label">Cost / min</div><div class="mono" style="font-size:19px;font-weight:600">${usd(n.cost_per_minute, 3)}</div><div class="cap">vs ${usd(y.cost_per_minute, 3)}</div></div>
+        <div><div class="label">Unpriced</div><div class="mono" style="font-size:19px;font-weight:600">${pct(n.unpriced_share)}</div><div class="cap">vs ${pct(y.unpriced_share)}</div></div></div>
+        <div class="controls"><a class="btn primary" href="/report#project=${encodeURIComponent(p)}&day=${today}">Open report</a></div></section>`; }).join("") + `</div>`;
+    const trs = rows.map((d) => { const i = all.indexOf(d); const prev = all[i + 1]; const c = prev ? change(d.cost_usd, prev.cost_usd) : null;
+      const st = d.recon_status; const stp = st ? pill(st === "ok" ? "pos" : st === "drift" ? "neg" : st === "fetch_failed" ? "warn" : "idle", st.replace(/_/g, " ")) : pill("idle", "not run");
+      return `<tr><td class="mono">${esc(d.day)}</td><td class="num">${usd(d.cost_usd, 2)}</td><td class="num muted">${c == null ? "—" : (c >= 0 ? "+" : "") + (c * 100).toFixed(1) + "%"}</td><td class="num">${num(d.calls)}</td><td class="num">${usd(d.cost_per_minute, 3)}</td><td class="num">${pct(d.unpriced_share)}</td><td class="num">${d.highlights}</td><td>${stp}</td><td style="text-align:right;white-space:nowrap"><a href="/report#project=${encodeURIComponent(project)}&day=${d.day}">Report</a></td></tr>`; }).join("");
+    html += card(`Days · ${project}`, rows.length ? `<div class="tablewrap"><table><thead><tr><th>Day (UTC)</th><th class="num">Cost</th><th class="num">vs prior day</th><th class="num">Calls</th><th class="num">Cost / min</th><th class="num">Unpriced</th><th class="num">Highlights</th><th>Estimate vs bill</th><th></th></tr></thead><tbody>${trs}</tbody></table></div>` : `<div class="empty">No days match these filters.</div>`,
+      "each day opens the built-in report (print from there for a PDF)", `<button class="btn" type="button" id="csv">Export CSV</button>`, false);
+    main.innerHTML = html; wireHeader(); wireFilters(["from", "to", "recon", "unp", "delta"], "show");
+    document.getElementById("csv").onclick = () => {
+      const lines = ["day,cost_usd,calls,minutes,cost_per_minute,unpriced_share,highlights,recon_status", ...rows.map((d) => [d.day, d.cost_usd, d.calls, d.minutes, d.cost_per_minute ?? "", d.unpriced_share, d.highlights, d.recon_status ?? ""].join(","))];
+      const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/csv" })); a.download = `voicetoll-${project}-${from}-${to}.csv`; a.click();
+    };
+  }
+
+  // ---------- Cost ----------
+  const COST_FILTERS = [["provider", "Provider", 150], ["component", "Stage", 120], ["model", "Model", 170], ["feature", "Feature", 170], ["agent_version", "Agent version", 160], ["region", "Region", 120], ["env", "Env", 110]];
+  async function renderCost() {
+    const r = route(); const days = r.days || "30"; const by = r.by || "component";
+    const qs = new URLSearchParams({ days, by }); if (r.project) qs.set("project", r.project);
+    COST_FILTERS.forEach(([k]) => r[k] && qs.set(k, r[k])); if (r.tenant) qs.set("tenant", r.tenant);
+    const d = await api(`/v1/admin/cost?${qs}`);
+    const t = d.totals, p = d.prior;
+    palette = Object.fromEntries(Object.entries(d.options).map(([k, v]) => [k, [...v].sort()]));
+    let html = header("Cost", "Where the money went over the range, against the previous period of the same length.", projectSelect(true) + rangeButtons());
+    const chips = COST_FILTERS.filter(([k]) => r[k]).map(([k, label]) => [k, `${label.toLowerCase()}: ${r[k]}`]); if (r.tenant) chips.push(["tenant", `tenant: ${r.tenant}`]);
+    html += filterBar(COST_FILTERS.map(([k, label, w]) => field(label, k, select(k, d.options[k] || [], r[k], w, "All"))).join("") +
+      field("Tenant", "tenant", `<input type="search" id="tenant" placeholder="h:7f3a…" value="${esc(r.tenant || "")}" style="width:150px">`), [], chips, `${num(t.calls)} calls match`);
+    html += `<div class="tiles">
+      ${tile("Total cost", usd(t.cost_usd, 2), changeText(t.cost_usd, p.cost_usd, (v) => usd(v, 2)))}
+      ${tile("Calls", num(t.calls), changeText(t.calls, p.calls, num))}
+      ${tile("Call minutes", num(Math.round(t.minutes)), changeText(t.minutes, p.minutes, (v) => num(Math.round(v))))}
+      ${tile("Cost per minute", usd(t.cost_per_minute, 3), changeText(t.cost_per_minute, p.cost_per_minute, (v) => usd(v, 3)))}
+      ${tile("p95 cost per call", usd(t.p95_cost_per_call, 3), changeText(t.p95_cost_per_call, p.p95_cost_per_call, (v) => usd(v, 3)))}
+      ${tile("Unpriced share", pct(t.unpriced_share), p.calls ? `vs ${pct(p.unpriced_share)} prior period` : "no prior period")}
+    </div>`;
+    // daily stacked bars
+    const dayList = []; for (let i = Number(days) - 1; i >= 0; i--) { const x = new Date(); x.setUTCDate(x.getUTCDate() - i); dayList.push(x.toISOString().slice(0, 10)); }
+    const keyTotals = {}; d.daily.forEach((row) => keyTotals[row.key ?? "(none)"] = (keyTotals[row.key ?? "(none)"] || 0) + row.cost_usd);
+    const keys = Object.keys(keyTotals).sort((a, b) => keyTotals[b] - keyTotals[a]); const shown = keys.slice(0, 6); const other = keys.length > 6;
+    const perDay = {}; d.daily.forEach((row) => { const k = shown.includes(row.key ?? "(none)") ? (row.key ?? "(none)") : "Other"; (perDay[row.day] ||= {})[k] = ((perDay[row.day] || {})[k] || 0) + row.cost_usd; });
+    const maxDay = Math.max(...dayList.map((day) => Object.values(perDay[day] || {}).reduce((s, v) => s + v, 0)), 1e-9);
+    const series = other ? [...shown, "Other"] : shown;
+    const cols = dayList.map((day) => { const v = perDay[day] || {}; const tot = Object.values(v).reduce((s, x) => s + x, 0);
+      return `<div class="col" title="${day}: ${usd(tot, 2)}">${[...series].reverse().filter((k) => v[k]).map((k) => `<div style="height:${(v[k] / maxDay * 160).toFixed(1)}px;background:${colorFor(k, by)}"></div>`).join("")}</div>`; }).join("");
+    const peakDay = dayList.reduce((a, b) => (Object.values(perDay[b] || {}).reduce((s, x) => s + x, 0) > Object.values(perDay[a] || {}).reduce((s, x) => s + x, 0) ? b : a), dayList[0]);
+    const stackBtns = [["component", "Stage"], ["provider", "Provider"], ["model", "Model"], ["agent_version", "Agent version"]].map(([k, l]) => `<button class="btn ${by === k ? "on" : ""}" type="button" data-by="${k}" aria-pressed="${by === k}">${l}</button>`).join("");
+    html += card("Daily cost", keys.length ? `<div class="legend">${series.map((k) => `<span><i style="background:${colorFor(k, by)}"></i>${esc(k)}</span>`).join("")}</div>
+      <div style="display:flex;gap:10px;margin-top:10px"><div class="cap mono" style="display:flex;flex-direction:column;justify-content:space-between;height:160px;text-align:right;width:52px"><span>${usd(maxDay, maxDay < 10 ? 2 : 0)}</span><span>${usd(maxDay / 2, maxDay < 10 ? 2 : 0)}</span><span>$0</span></div><div class="stack" style="flex-grow:1">${cols}</div></div>
+      <div class="cap" style="display:flex;justify-content:space-between;padding-left:62px"><span>${dayList[0]}</span><span>${dayList[dayList.length - 1]}</span></div>
+      <p class="reading">${esc(keys[0])} carries ${pct(keyTotals[keys[0]] / (t.cost_usd || 1))} of cost in this range; the busiest day was ${peakDay}.</p>` : `<div class="empty">No cost in this range.</div>`,
+      "stacked, UTC days", `<span class="cap">Stack by</span>${stackBtns}`);
+    const provTotal = d.by_provider.reduce((s, x) => s + x.cost_usd, 0);
+    html += `<div class="grid2">${card("By provider", hbars(d.by_provider, "provider", provTotal) + (d.by_provider[0] ? `<p class="reading">${esc(d.by_provider[0].key)} is the largest line at ${pct(d.by_provider[0].cost_usd / (provTotal || 1))}.</p>` : ""), `${days} days`)}
+      ${card("By model", hbars(d.by_model, "model", provTotal) + (d.by_model.length ? `<p class="reading">${d.by_model.length} model${d.by_model.length > 1 ? "s" : ""} in use; ${d.by_model.filter((m) => !m.cost_usd).length} of them at $0 (unpriced or not billed).</p>` : ""), `${days} days`)}</div>`;
+    const tr = d.tenants.map((x) => `<tr><td class="mono">${esc(x.tenant_id ?? "(none)")}</td><td class="num">${usd(x.cost_usd, 2)}</td><td class="num">${num(x.calls)}</td><td class="num">${usd(x.cost_per_minute, 3)}</td><td class="num" style="color:${x.change > 0.1 ? "var(--warn-ink)" : "var(--fg-2)"}">${x.change == null ? "new" : (x.change >= 0 ? "+" : "") + (x.change * 100).toFixed(0) + "%"}</td><td style="text-align:right"><button class="btn" type="button" data-tenant="${esc(x.tenant_id ?? "")}">Filter</button></td></tr>`).join("");
+    const providers = [...new Set(d.recon.map((x) => `${x.project}|${x.provider}`))];
+    const reconDays = []; for (let i = 13; i >= 0; i--) { const x = new Date(); x.setUTCDate(x.getUTCDate() - 1 - i); reconDays.push(x.toISOString().slice(0, 10)); }
+    const reconHtml = providers.length ? providers.map((key) => { const [proj, prov] = key.split("|"); const runs = d.recon.filter((x) => x.project === proj && x.provider === prov);
+      const cells = reconDays.map((day) => { const run = runs.find((x) => x.day === day); const bg = !run ? "var(--chart-track)" : run.status === "ok" ? "var(--chart-ok)" : run.status === "drift" ? "var(--chart-bad)" : "var(--chart-slow)";
+        return `<span class="cell" style="background:${bg}" title="${day}: ${run ? esc(run.status) : "not run"}"></span>`; }).join("");
+      const last = runs[0]; const drift = last && last.drift_pct != null ? pct(last.drift_pct) : last && Object.values(last.unit_drift || {}).length ? pct(Math.max(...Object.values(last.unit_drift))) : "";
+      return `<div style="display:grid;grid-template-columns:110px minmax(0,1fr) 120px;gap:10px;align-items:center"><div><div style="font-weight:500">${esc(prov)}</div><div class="cap">${esc(proj)}</div></div><div style="display:flex;gap:3px">${cells}</div><div style="text-align:right">${last ? pill(last.status === "ok" ? "pos" : last.status === "drift" ? "neg" : "idle", `${last.status.replace(/_/g, " ")}${drift ? " · " + drift : ""}`) : ""}</div></div>`; }).join("")
+      + `<p class="reading">Green: within the drift threshold of the provider’s own figure; red: drift; amber: other status; empty: not run.</p>` : `<div class="empty">No reconciliation runs in the last 14 days. Configure accounts in <code>VOICETOLL_RECON_CONFIG</code>.</div>`;
+    html += `<div class="grid2">${card("Top tenants", tr ? `<div class="tablewrap"><table><thead><tr><th>Tenant (pseudonymous)</th><th class="num">Cost</th><th class="num">Calls</th><th class="num">Cost / min</th><th class="num">vs prior</th><th></th></tr></thead><tbody>${tr}</tbody></table></div>` : `<div class="empty">No tenants in this range.</div>`, `${days} days`, "", false)}
+      ${card("Estimate vs provider bill", `<div style="display:flex;flex-direction:column;gap:10px">${reconHtml}</div>`, "last 14 days")}</div>`;
+    main.innerHTML = html; wireHeader(); wireFilters([...COST_FILTERS.map(([k]) => k), "tenant"], "show");
+    main.querySelectorAll("[data-by]").forEach((b) => b.onclick = () => go({ by: b.dataset.by }, true));
+    main.querySelectorAll("[data-tenant]").forEach((b) => b.onclick = () => go({ tenant: b.dataset.tenant }, true));
+  }
+
+  // ---------- Health ----------
+  async function renderHealth() {
+    const r = route(); const minutes = r.window || "180";
+    const h = await api(`/v1/admin/health?minutes=${minutes}`); lastHealth = h;
+    const degraded = h.checks.filter((c) => c.state === "degraded" || c.state === "failing").length;
+    badge("health", degraded ? pill(h.checks.some((c) => c.state === "failing") ? "neg" : "warn", `${degraded} ${h.checks.some((c) => c.state === "failing") ? "failing" : "degraded"}`) : "");
+    document.getElementById("replica").textContent = `replica ${h.replica}`;
+    const states = r.states === "none" ? [] : (r.states ? list(r.states) : ["healthy", "degraded", "failing", "not configured"]);
+    const lvl = r.level || ""; const q = (r.wq || "").toLowerCase();
+    let html = header("Collector health", "Is the collector receiving, pricing, storing and reconciling?", `<button class="btn" type="button" id="refresh">Refresh</button><span class="cap">updated ${utc(h.now).slice(11)} · auto every 30 s</span>`);
+    const sources = h.sources.filter((s) => (!r.project || s.project === r.project) && (!r.source || s.source === r.source));
+    const connectors = h.connectors.filter((c) => !r.project || c.project === r.project);
+    const warns = h.warnings.filter((w) => (!lvl || w.level === lvl) && (!q || (w.message + " " + w.logger).toLowerCase().includes(q)));
+    const chips = []; if (r.project) chips.push(["project", `project: ${r.project}`]); if (r.source) chips.push(["source", `source: ${r.source}`]); if (r.wq) chips.push(["wq", `“${r.wq}”`]);
+    html += filterBar(
+      field("Project", "project", select("project", [...new Set(h.sources.map((s) => s.project))], r.project, 150, "All projects")) +
+      field("Source", "source", select("source", [...new Set(h.sources.map((s) => s.source).filter(Boolean))], r.source, 130, "All sources")) +
+      field("Window", "window", `<select id="window" data-f="window" style="width:140px">${[["15", "Last 15 min"], ["180", "Last 3 hours"], ["1440", "Last 24 hours"]].map(([v, l]) => `<option value="${v}" ${v === minutes ? "selected" : ""}>${l}</option>`).join("")}</select>`) +
+      field("Log level", "level", select("level", [["WARNING", "Warning"], ["ERROR", "Error"], ["CRITICAL", "Critical"]], lvl, 140, "Warning and above")) +
+      field("Search warnings", "wq", `<input type="search" id="wq" placeholder="spool, recon, rejected…" value="${esc(r.wq || "")}" style="width:220px">`),
+      [["healthy", "Healthy"], ["degraded", "Degraded"], ["failing", "Failing"], ["not configured", "Not configured"]].map(([k, t]) => [k, t, states.includes(k)]), chips,
+      `${h.checks.length} checks · ${degraded} need attention`);
+    const spoolCheck = h.checks.find((c) => c.name === "Spool");
+    if ((h.spool.rejected_files || []).length) html += banner("warn", `${h.spool.rejected_files.length} spooled batch file${h.spool.rejected_files.length > 1 ? "s were" : " was"} set aside after failing replay repeatedly with the database up.`, `They are in <code>spool/rejected/</code> (${h.spool.rejected_files.slice(0, 3).map(esc).join(", ")}); the batches behind them were not held up. Inspect them, then delete or move them back to replay.`);
+    if (spoolCheck && spoolCheck.state !== "healthy" && h.spool.files) html += banner(spoolCheck.state === "failing" ? "neg" : "warn", `${h.spool.files} spooled batch file${h.spool.files > 1 ? "s are" : " is"} waiting, so those events are not in the figures yet.`, "The collector replays them every few seconds. If replay keeps failing, check the recent warnings below for the file and the reason.");
+    const db = h.checks.find((c) => c.name === "Database");
+    if (db && db.state === "failing") html += banner("neg", "The database is not reachable, so new events go to the disk spool.", "They are replayed in order when it comes back; ingest returns 503 only when the spool is full.");
+    html += `<div class="tiles">` + h.checks.filter((c) => states.includes(c.state === "loaded" ? "healthy" : c.state)).map((c) => `<div class="card tile"><div class="label">${esc(c.name)}</div><div>${pill(stateKind(c.state), c.state)}</div><div class="cap">${esc(c.note)}</div></div>`).join("") + `</div>`;
+    const s = h.series; const maxv = Math.max(...s.map((b) => b.events_accepted + b.events_rejected), 1);
+    const lh = h.last_hour; const reqs = s.filter((b) => b.p95_ms != null);
+    const p95 = reqs.length ? Math.max(...reqs.slice(-60).map((b) => b.p95_ms)) : null;
+    const acc = lh.events_accepted, rej = lh.events_rejected;
+    const bars = s.map((b) => `<div title="${utc(b.epoch).slice(11, 16)} · ${b.events_accepted} accepted, ${b.events_rejected} rejected"><div style="height:${(b.events_accepted / maxv * 108).toFixed(1)}px;background:var(--cat-1)"></div>${b.events_rejected ? `<div style="height:${Math.max(b.events_rejected / maxv * 108, 2).toFixed(1)}px;background:var(--cat-2)"></div>` : ""}</div>`).join("");
+    html += card("Ingest", `<div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px">
+      <div><div class="label">Accepted, last hour</div><div class="mono" style="font-size:19px;font-weight:600">${num(acc)}</div><div class="cap">${num(h.counters.events_accepted || 0)} since start</div></div>
+      <div><div class="label">Rejected</div><div class="mono" style="font-size:19px;font-weight:600">${acc + rej ? pct(rej / (acc + rej)) : "0.0%"}</div><div class="cap">${num(rej)} events last hour</div></div>
+      <div><div class="label">Duplicates</div><div class="mono" style="font-size:19px;font-weight:600">${num(lh.events_duplicate)}</div><div class="cap">client retries, last hour</div></div>
+      <div><div class="label">Spooled</div><div class="mono" style="font-size:19px;font-weight:600">${num(lh.events_spooled)}</div><div class="cap">${num(lh.events_replayed)} replayed, last hour</div></div>
+      <div><div class="label">Ingest p95</div><div class="mono" style="font-size:19px;font-weight:600">${p95 == null ? "—" : p95.toFixed(1) + " ms"}</div><div class="cap">worst minute, last hour</div></div></div>
+      <div class="legend" style="margin-top:12px"><span><i style="background:var(--cat-1)"></i>accepted</span><span><i style="background:var(--cat-2)"></i>rejected</span></div>
+      <div class="spark" style="margin-top:8px;gap:${s.length > 120 ? 0 : 2}px">${bars}</div><div class="cap" style="display:flex;justify-content:space-between"><span>${utc(s[0].epoch).slice(11, 16)}</span><span>${utc(s[s.length - 1].epoch).slice(11, 16)} UTC</span></div>
+      <p class="reading">${acc ? `${num(acc)} events accepted in the last hour${rej ? `, ${num(rej)} rejected by the schema check` : " with no rejections"}.` : "No events received in the last hour on this replica."}</p>`, `per minute, this replica`);
+    const srows = sources.map((x) => { const quiet = x.last_event_epoch && Date.now() / 1000 - x.last_event_epoch > 1800;
+      return `<tr><td style="font-weight:500">${esc(x.project)}</td><td><span class="tag">${esc(x.source || "sdk")}</span></td><td class="num">${ago(x.last_event_epoch)}</td><td class="num">${num(x.events_last_hour)}</td><td class="num">${lagText(x.lag_p95_s)}</td><td>${quiet ? pill("warn", "quiet") : pill("pos", "sending")}</td></tr>`; }).join("");
+    const quiet = sources.filter((x) => x.last_event_epoch && Date.now() / 1000 - x.last_event_epoch > 1800);
+    html += card("Who is sending", srows ? `<div class="tablewrap"><table><thead><tr><th>Project</th><th>Source</th><th class="num">Last event</th><th class="num">Last hour</th><th class="num">Receive lag p95</th><th>Status</th></tr></thead><tbody>${srows}</tbody></table></div>
+      <p class="reading" style="padding:0 16px 14px">${quiet.length ? `${quiet.map((x) => esc(x.project) + " · " + esc(x.source)).join(", ")} ha${quiet.length > 1 ? "ve" : "s"} sent nothing for over 30 minutes. Adapters fail open, so a broken one goes quiet rather than erroring: check its collector endpoint and key.` : "Every source has sent events in the last 30 minutes."} Receive lag is the time from the event to the collector receiving it, which exposes client buffering and retries.</p>` : `<div class="empty">No events in the last 7 days.</div>`,
+      "per project and source, last 7 days", "", false);
+    const clients = (h.clients || []).filter((c) => !r.project || c.project === r.project);
+    const clientRows = clients.map((c) => { const fresh = Date.now() / 1000 - c.reported_epoch < 3600; const fill = c.buffer_max ? c.buffer_len / c.buffer_max : 0;
+      const gap = (c.received_before || 0) - (c.sent || 0);
+      const state = !fresh ? pill("idle", "not reporting") : gap < 0 ? pill("neg", "missing events") : c.dropped ? pill("warn", "dropping") : c.errors ? pill("warn", "errors") : pill("pos", "ok");
+      const arrived = `<td class="num" title="Events from this app process that reached the collector (before its latest batch). Should equal Sent; higher means retried batches, stored once.">${num(c.received_before || 0)}${gap ? `<div class="cap" style="color:${gap < 0 ? "var(--neg-ink)" : "var(--fg-3)"}">${gap > 0 ? "+" : ""}${num(gap)}</div>` : ""}</td>`;
+      return `<tr><td style="font-weight:500">${esc(c.project)}</td><td class="mono cap" title="${esc(c.client_id)}">${esc(c.client_id.slice(-8))}</td><td class="cap">${esc(c.sdk_version || "—")}</td><td>${c.source ? c.source.split(",").map((x) => `<span class="tag">${esc(x)}</span>`).join(" ") : "—"}</td>
+        <td class="num">${num(c.sent)}</td>${arrived}<td class="num" style="color:${c.dropped ? "var(--warn-ink)" : "inherit"}">${num(c.dropped)}</td><td class="num">${num(c.errors)}</td>
+        <td class="num">${pct(fill, 0)}<div class="bar" style="width:60px;display:inline-block;margin-left:6px;vertical-align:middle"><div style="width:${(fill * 100).toFixed(0)}%;background:${fill > 0.8 ? "var(--chart-bad)" : "var(--cat-1)"}"></div></div></td>
+        <td class="num">${ago(c.reported_epoch)}</td><td>${state}</td></tr>`; }).join("");
+    const dropTotal = clients.filter((c) => Date.now() / 1000 - c.reported_epoch < 3600).reduce((s, c) => s + c.dropped, 0);
+    html += card("Clients", clientRows ? `<div class="tablewrap"><table><thead><tr><th>Project</th><th>Client</th><th>SDK</th><th>Source</th><th class="num">Sent</th><th class="num">Arrived</th><th class="num">Dropped</th><th class="num">Errors</th><th class="num">Buffer</th><th class="num">Last report</th><th>Status</th></tr></thead><tbody>${clientRows}</tbody></table></div>
+      <p class="reading" style="padding:0 16px 14px">${dropTotal ? `Active clients have dropped ${num(dropTotal)} events since they started, so those calls are under-counted. Drops happen when the in-app buffer fills, usually because the collector was unreachable for longer than the retry window.` : "No active client has dropped events."} Counters are cumulative per app process and arrive with each batch the client sends. <b>Sent</b> is what the client saw acknowledged; <b>Arrived</b> is what this collector counted from the same process, so the two should match.</p>`
+      : `<div class="empty">No client has reported counters in the last 7 days. Clients from voicetoll 0.1.0 onward send them with every batch.</div>`,
+      "in-app counters, one row per app process, last 7 days", "", false);
+    const crow = connectors.map((c) => `<tr><td>${esc(c.project)}</td><td style="font-weight:500">${esc(c.provider)}</td><td class="cap">${esc(c.scope)}</td><td>${c.key_set ? pill("pos", c.key_from === "agent key" ? "agent key" : "set") : pill("warn", "missing")}</td><td>${!c.has_connector ? pill("idle", "no connector") : c.last_status ? pill(c.last_status === "ok" ? "pos" : c.last_status === "drift" ? "neg" : "warn", c.last_status.replace(/_/g, " ")) : pill("idle", "not run")}</td><td class="num">${c.drift_days}</td></tr>`).join("");
+    const wrows = warns.slice(0, 100).map((w) => `<div class="warnrow"><span class="mono cap">${utc(w.epoch).slice(0, 19)}</span><span class="mono cap">${esc(w.level)} · ${esc(w.logger)}</span><span class="muted">${esc(w.message)}</span></div>`).join("");
+    html += `<div class="grid2">${card("Reconciliation connectors", crow ? `<div class="tablewrap"><table><thead><tr><th>Project</th><th>Provider</th><th>Scope</th><th>Key</th><th>Last run</th><th class="num">Drift days</th></tr></thead><tbody>${crow}</tbody></table></div>` : `<div class="empty">${h.connectors_error ? "The reconciliation config did not load: " + esc(h.connectors_error) : "No reconciliation accounts configured (VOICETOLL_RECON_CONFIG)."}</div>`, "keys are never shown, only whether one is set", "", false)}
+      ${card("Recent warnings", wrows || `<div class="empty">No warnings since this replica started.</div>`, `collector log, since start · ${warns.length} shown`)}</div>
+      <p class="cap">Series reset on restart and show this replica only. For fleet-wide and long-range health, scrape <code>/metrics</code> with Prometheus.</p>`;
+    main.innerHTML = html; wireFilters(["project", "source", "window", "level", "wq"], "states", ["healthy", "degraded", "failing", "not configured"]);
+    document.getElementById("refresh").onclick = () => render();
+  }
+
+  // ---------- shell ----------
+  function badge(view, html) { const el = document.getElementById("badge-" + view); if (el) el.innerHTML = html; }
+  function keyPanel(message) {
+    main.innerHTML = `<div class="card keybox"><h2>Admin key</h2><p class="muted">${esc(message)} Enter the value of <code>VOICETOLL_ADMIN_KEY</code>. It is kept in this browser tab only and cleared when the tab closes.</p>
+      <form id="keyForm"><label class="sr" for="keyInput">Admin key</label><input type="password" id="keyInput" autocomplete="off" value="${esc(getKey())}"><button class="btn primary" type="submit">Sign in</button></form></div>`;
+    document.getElementById("keyForm").onsubmit = (e) => { e.preventDefault(); setKey(document.getElementById("keyInput").value.trim()); start(); };
+    document.getElementById("keyInput").focus();
+  }
+  const VIEWS = { prices: renderPrices, reports: renderReports, cost: renderCost, health: renderHealth };
+  async function render() {
+    const r = route();
+    document.querySelectorAll("nav.rail a[data-view]").forEach((a) => a.setAttribute("aria-current", a.dataset.view === r.view ? "page" : "false"));
+    clearInterval(healthTimer);
+    if (r.view === "health") healthTimer = setInterval(() => { if (document.visibilityState === "visible" && document.activeElement?.tagName !== "INPUT") render(); }, 30000);
+    const focused = document.activeElement && main.contains(document.activeElement) ? document.activeElement : null;
+    const focusId = focused && focused.id; const caret = focused && "selectionStart" in focused ? focused.selectionStart : null;
+    try {
+      await (VIEWS[r.view] || renderPrices)();
+      const again = focusId && document.getElementById(focusId);  // keep typing in a filter after the view re-renders
+      if (again) { again.focus(); if (caret != null && again.setSelectionRange && again.type === "search") try { again.setSelectionRange(caret, caret); } catch {} }
+    }
+    catch (err) {
+      if (err instanceof AuthError) keyPanel(err.message === "off" ? "The admin UI is off on this collector until VOICETOLL_ADMIN_KEY is set." : getKey() ? "The collector rejected this key." : "This collector needs an admin key.");
+      else main.innerHTML = `<div class="banner neg" role="alert"><p><b>Could not load this view:</b> ${esc(err.message)}. Is the collector running?</p></div>`;
+    }
+  }
+  async function start() {
+    try { projects = (await api("/v1/admin/projects")).projects; }
+    catch (err) { if (err instanceof AuthError) return keyPanel(err.message === "off" ? "The admin UI is off on this collector until VOICETOLL_ADMIN_KEY is set." : getKey() ? "The collector rejected this key." : "This collector needs an admin key."); main.innerHTML = `<div class="banner neg"><p><b>Could not reach the collector:</b> ${esc(err.message)}</p></div>`; return; }
+    render();
+    // Background badges so every nav item shows its state without visiting it
+    if (route().view !== "health") api("/v1/admin/health?minutes=15").then((h) => { const n = h.checks.filter((c) => c.state === "degraded" || c.state === "failing").length; badge("health", n ? pill("warn", `${n} degraded`) : ""); document.getElementById("replica").textContent = `replica ${h.replica}`; }).catch(() => {});
+    if (route().view !== "prices") api("/v1/admin/prices?days=7").then((p) => badge("prices", p.summary.stale_rates ? pill("warn", `${p.summary.stale_rates} stale`) : "")).catch(() => {});
+  }
+  const themeBtn = document.getElementById("themeBtn");
+  const syncTheme = () => { themeBtn.textContent = document.documentElement.dataset.theme === "light" ? "Dark theme" : "Light theme"; };
+  themeBtn.onclick = () => { const t = document.documentElement.dataset.theme === "light" ? "dark" : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("voicetoll.theme", t); } catch {} syncTheme(); };
+  syncTheme();
+  document.getElementById("signOut").onclick = (e) => { e.preventDefault(); setKey(""); keyPanel("Signed out."); };
+  window.addEventListener("hashchange", render);
+  start();
+})();
+</script>
+</body>
+</html>

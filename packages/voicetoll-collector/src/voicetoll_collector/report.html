@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>voiceToll report</title>
+<script>
+  // Same theme as /admin (Console Kit: dark-first); the choice is shared through localStorage
+  (function () { try { var t = localStorage.getItem("voicetoll.theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {} })();
+</script>
+<style>
+  /* Console Kit tokens (same values as admin.html) */
+  :root, [data-theme="dark"] {
+    --bg:#0B0E13; --surface:#131821; --surface-raised:#10141B; --surface-2:#1A212C; --inset:#0F141C;
+    --line-soft:#1E2530; --line:#252D3A; --line-strong:#2C3646;
+    --fg:#E8ECF3; --fg-2:#9AA6B8; --fg-3:#7C8A9E;
+    --accent:#3DDC97; --accent-hover:#6FE9B5; --accent-ink:#04231A; --accent-bg:#12211B; --accent-line:#1E4436;
+    --pos-bg:#12211B; --pos-line:#1E4436; --pos-ink:#6FE9B5;
+    --warn-bg:#241D0F; --warn-line:#4A3A18; --warn-ink:#F5B544;
+    --neg-bg:#2A1414; --neg-line:#5A2626; --neg-ink:#FF7A7A;
+    --cat-1:#3987e5; --cat-2:#d95926; --cat-3:#199e70; --cat-muted:#5B6B83; --chart-track:#1D2430;
+    color-scheme: dark;
+  }
+  [data-theme="light"] {
+    --bg:#F4F6F5; --surface:#FFFFFF; --surface-raised:#FFFFFF; --surface-2:#F0F3F2; --inset:#E9EDEC;
+    --line-soft:#EBEFEE; --line:#DDE3E1; --line-strong:#C9D2CF;
+    --fg:#10171C; --fg-2:#4B5A63; --fg-3:#5E6B74;
+    --accent:#0A8158; --accent-hover:#086A48; --accent-ink:#FFFFFF; --accent-bg:#E7F5EF; --accent-line:#BFE3D4;
+    --pos-bg:#E7F5EF; --pos-line:#BFE3D4; --pos-ink:#07603F;
+    --warn-bg:#FDF6E7; --warn-line:#EBD9AE; --warn-ink:#8A5606;
+    --neg-bg:#FDECEC; --neg-line:#F0C4C0; --neg-ink:#A32F23;
+    --cat-1:#2a78d6; --cat-2:#eb6834; --cat-3:#1baf7a; --cat-muted:#6E7A87; --chart-track:#E9EDEC;
+    color-scheme: light;
+  }
+  :root {
+    /* names the report's script uses */
+    --ink: var(--fg); --muted: var(--fg-2); --accent-soft: var(--accent-bg); --neutral-soft: var(--chart-track);
+    --stt: var(--cat-1); --llm: var(--cat-2); --tts: var(--cat-3); --other: var(--cat-muted);
+    --radius: 12px; --mono: ui-monospace, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 13px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  header { position: sticky; top: 0; z-index: 5; background: var(--surface-raised); border-bottom: 1px solid var(--line); }
+  .bar { max-width: 1180px; margin: 0 auto; padding: 10px 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .brand { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; margin-right: auto; }
+  .brand .mark { width: 22px; height: 22px; border-radius: 6px; background: var(--accent); display: inline-block; }
+  .brand small { font-weight: 400; color: var(--fg-2); font-size: 12px; padding: 1px 6px; border-radius: 5px; background: var(--surface-2); border: 1px solid var(--line-strong); }
+  .brand small:empty { display: none; }
+  main { max-width: 1180px; margin: 0 auto; padding: 20px 16px 48px; }
+  button, input { font: inherit; color: inherit; }
+  button { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--fg); font-size: 12.5px; cursor: pointer; }
+  button:hover { border-color: var(--fg-3); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  input[type=date], input[type=password] { height: 30px; background: var(--inset); border: 1px solid var(--line-strong); border-radius: 8px; padding: 0 8px; font-size: 12.5px; }
+  h2 { font-size: 14px; font-weight: 600; margin: 28px 0 10px; }
+  h2 .sub { font-weight: 400; color: var(--fg-3); font-size: 11.5px; margin-left: 8px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; }
+  .tile { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
+  .tile .label { font-size: 11px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--fg-3); }
+  .tile .value { font-family: var(--mono); font-size: 26px; font-weight: 600; letter-spacing: -0.025em; line-height: 1; margin-top: 8px; }
+  .tile .note { color: var(--fg-3); font-size: 11.5px; margin-top: 8px; }
+  .tile.warn { border-color: var(--warn-line); background: var(--warn-bg); } .tile.warn .note, .tile.warn .label { color: var(--warn-ink); }
+  .tile.bad { border-color: var(--neg-line); background: var(--neg-bg); } .tile.bad .note, .tile.bad .label { color: var(--neg-ink); }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+  .grid2 > * { min-width: 0; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
+  .card h3 { margin: 0 0 10px; font-size: 11px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--fg-3); }
+  .hbar { display: grid; grid-template-columns: minmax(90px, 30%) 1fr auto; gap: 10px; align-items: center; margin: 8px 0; }
+  .hbar .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .track { height: 10px; background: var(--chart-track); border-radius: 999px; overflow: hidden; }
+  .fill { height: 100%; background: var(--cat-1); border-radius: 999px; }
+  .num { font-family: var(--mono); font-size: 12.5px; text-align: right; white-space: nowrap; }
+  .muted { color: var(--fg-2); }
+  .mono { font-family: var(--mono); font-size: 12px; }
+  td.mono { white-space: nowrap; }
+  .tablewrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 9px 12px; border-bottom: 1px solid var(--line-soft); text-align: left; vertical-align: middle; }
+  th { font-size: 11px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--fg-3); white-space: nowrap; border-bottom-color: var(--line); }
+  th.sortable { cursor: pointer; user-select: none; } th.sortable:hover { color: var(--fg); }
+  tr:last-child td { border-bottom: 0; }
+  tr.click { cursor: pointer; } tr.click:hover td { background: var(--accent-bg); }
+  .badge { display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 500; white-space: nowrap; border: 1px solid; }
+  .badge::before { content: ""; width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
+  .b-ok { background: var(--pos-bg); border-color: var(--pos-line); color: var(--pos-ink); }
+  .b-bad { background: var(--neg-bg); border-color: var(--neg-line); color: var(--neg-ink); }
+  .b-warn { background: var(--warn-bg); border-color: var(--warn-line); color: var(--warn-ink); }
+  .b-neutral { background: var(--surface-2); border-color: var(--line-strong); color: var(--fg-2); }
+  .hl { display: grid; gap: 8px; }
+  .hl .item { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 14px; display: flex; gap: 12px; align-items: baseline; }
+  .hl .item .t { font-weight: 600; }
+  .hl .item .d { color: var(--fg-2); }
+  .hl .item .usd { margin-left: auto; font-family: var(--mono); }
+  .empty { background: var(--surface); border: 1px dashed var(--line-strong); border-radius: var(--radius); padding: 18px; color: var(--fg-2); }
+  .error { background: var(--neg-bg); border: 1px solid var(--neg-line); color: var(--neg-ink); border-radius: 8px; padding: 10px 14px; margin: 12px 0; }
+  .keybox { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; max-width: 520px; }
+  .keybox p { margin: 0 0 12px; color: var(--fg-2); }
+  .keybox form { display: flex; gap: 8px; } .keybox input { flex: 1; }
+  .stack { display: flex; height: 14px; border-radius: 4px; overflow: hidden; background: var(--chart-track); gap: 1px; }
+  .stack span { display: block; height: 100%; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; color: var(--fg-2); font-size: 11.5px; margin-bottom: 8px; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+  .back { margin: 0 0 6px; }
+  .crumb { color: var(--fg-3); font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; }
+  .foot { margin-top: 36px; color: var(--fg-3); font-size: 11.5px; }
+  a { color: var(--accent); text-decoration: none; } a:hover { color: var(--accent-hover); }
+  #adminLink:empty { display: none; }
+  @media (max-width: 600px) {
+    .hbar { grid-template-columns: 90px 1fr auto; } .hl .item { flex-wrap: wrap; } .hl .item .usd { margin-left: 0; }
+    button, input[type=date] { min-height: 44px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  @media print {
+    :root { --bg:#fff; --surface:#fff; --surface-raised:#fff; --fg:#10171C; --fg-2:#4B5A63; --fg-3:#5E6B74; --line:#DDE3E1; --line-soft:#EBEFEE; --chart-track:#E9EDEC; }
+    header .controls, .noprint { display: none !important; }
+    header { position: static; border: 0; }
+    body { background: #fff; color: #10171C; }
+    .tile, .card, .tablewrap, .hl .item { break-inside: avoid; }
+    tr.click:hover td { background: none; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="brand"><span class="mark" aria-hidden="true"></span>voiceToll <small id="projectLabel"></small> <a id="adminLink" href="/admin" style="font-weight:400;font-size:12.5px"></a></div>
+    <div class="controls" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+      <button id="prevDay" title="Previous day">&larr;</button>
+      <input type="date" id="dayInput" aria-label="Day (UTC)">
+      <button id="nextDay" title="Next day">&rarr;</button>
+      <button id="todayBtn">Today</button>
+      <span class="muted" style="font-size:12px">days are UTC</span>
+      <button id="refreshBtn" title="Reload data">Refresh</button>
+      <button id="printBtn" title="Print or save as PDF">Print</button>
+      <button id="keyBtn" title="Change the collector key">Key</button>
+      <button id="themeBtn" type="button" aria-label="Switch colour theme">Light</button>
+    </div>
+  </div>
+</header>
+<main id="app"><div class="muted">Loading…</div></main>
+
+<script>
+(() => {
+  "use strict";
+  const KEY_STORE = "voicetoll.key";
+  const ADMIN_KEY_STORE = "voicetoll.adminKey";
+  const COMP_COLORS = { stt: "var(--stt)", llm: "var(--llm)", tts: "var(--tts)" };
+  const LATENCY_LABELS = {
+    "stt.transcription_delay": "STT: transcript delay after speech ends",
+    "stt.eou_delay": "STT: end-of-utterance delay",
+    "stt.duration": "STT: request duration",
+    "llm.ttft": "LLM: time to first token",
+    "llm.duration": "LLM: request duration",
+    "tts.ttfb": "TTS: time to first audio",
+    "tts.duration": "TTS: synthesis duration",
+    "vad.duration": "VAD: inference time",
+    "turn.eou_delay": "Turn: end-of-utterance delay",
+    "turn.transcription_delay": "Turn: transcript ready after speech ends",
+  };
+  const app = document.getElementById("app");
+
+  // ---------- helpers ----------
+  const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const usd = (v) => {
+    if (v === null || v === undefined || isNaN(v)) return "—";
+    const n = Number(v), a = Math.abs(n);
+    const dp = a >= 100 ? 2 : a >= 1 ? 3 : 4;
+    return "$" + n.toFixed(dp);
+  };
+  const pct = (v, dp = 1) => (v === null || v === undefined || isNaN(v)) ? "—" : (Number(v) * 100).toFixed(dp) + "%";
+  const num = (v, dp = 1) => (v === null || v === undefined || isNaN(v)) ? "—" : Number(v).toLocaleString(undefined, { maximumFractionDigits: dp });
+  const ms = (v) => (v === null || v === undefined || isNaN(v)) ? "—" : Math.round(Number(v)).toLocaleString() + " ms";
+  const todayUTC = () => new Date().toISOString().slice(0, 10);
+  const shiftDay = (day, n) => { const d = new Date(day + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+  const localTime = (epoch) => new Date(epoch * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  const utcTime = (epoch) => new Date(epoch * 1000).toISOString().replace("T", " ").slice(0, 19) + " UTC";
+  const shortId = (s, n = 28) => { s = String(s ?? ""); return s.length > n ? s.slice(0, n - 1) + "…" : s; };
+  const unitLabel = (u) => ({ audio_input_seconds: "audio in (s)", audio_output_seconds: "audio out (s)", characters: "characters",
+    input_tokens: "input tokens", output_tokens: "output tokens", cached_input_tokens: "cached input tokens",
+    audio_input_tokens: "audio input tokens", audio_output_tokens: "audio output tokens" }[u] || u.replace(/_/g, " "));
+
+  function getKey() { try { return localStorage.getItem(KEY_STORE) || ""; } catch { return ""; } }
+  function setKey(k) { try { k ? localStorage.setItem(KEY_STORE, k) : localStorage.removeItem(KEY_STORE); } catch {} }
+
+  class AuthError extends Error {}
+  // An admin signed in to /admin (same tab) can read any project: the admin key plus ?project=.
+  function adminKey() { try { return sessionStorage.getItem(ADMIN_KEY_STORE) || ""; } catch { return ""; } }
+  async function api(path) {
+    const headers = {};
+    const key = getKey();
+    const admin = adminKey();
+    const project = route().project;
+    if (admin && project) {
+      headers["X-Voicetoll-Admin-Key"] = admin;
+      path += (path.includes("?") ? "&" : "?") + "project=" + encodeURIComponent(project);
+    } else if (key) headers["X-Voicetoll-Key"] = key;
+    const res = await fetch(path, { headers, cache: "no-store" });
+    if (res.status === 401) throw new AuthError("key rejected");
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`${path} returned ${res.status}`);
+    return res.json();
+  }
+
+  // ---------- routing ----------
+  function route() {
+    const p = new URLSearchParams(location.hash.slice(1));
+    return { day: p.get("day") || todayUTC(), call: p.get("call"), project: p.get("project"), audit: p.get("audit") === "1" };
+  }
+  const projectPrefix = () => (route().project ? `project=${encodeURIComponent(route().project)}&` : "");
+  function go(params) {
+    const p = new URLSearchParams();
+    if (route().project) p.set("project", route().project);
+    if (params.day) p.set("day", params.day);
+    if (params.call) p.set("call", params.call);
+    if (params.audit) p.set("audit", "1");
+    location.hash = p.toString();
+  }
+
+  // ---------- components ----------
+  function tile(label, value, note = "", cls = "") {
+    return `<div class="tile ${cls}"><div class="label">${esc(label)}</div><div class="value">${value}</div>${note ? `<div class="note">${note}</div>` : ""}</div>`;
+  }
+  function hbars(rows, { color } = {}) {
+    rows = rows.filter((r) => (r.cost_usd || 0) > 0);  // e.g. turn-timing events carry no cost
+    if (!rows.length) return `<div class="muted">No cost on this day.</div>`;
+    const total = rows.reduce((s, r) => s + (r.cost_usd || 0), 0);
+    const max = Math.max(...rows.map((r) => r.cost_usd || 0), 1e-12);
+    return rows.map((r) => {
+      const c = color ? color(r) : "var(--cat-1)";
+      const share = total > 0 ? (r.cost_usd || 0) / total : 0;
+      return `<div class="hbar"><div class="name" title="${esc(r.key)}">${esc(r.key ?? "(none)")}</div>
+        <div class="track"><div class="fill" style="width:${((r.cost_usd || 0) / max * 100).toFixed(1)}%;background:${c}"></div></div>
+        <div class="num">${usd(r.cost_usd)} <span class="muted">${pct(share, 0)}</span></div></div>`;
+    }).join("");
+  }
+  function statusBadge(status, alert) {
+    const cls = status === "ok" ? "b-ok" : status === "drift" ? "b-bad" : status === "drift_shared_account" ? "b-warn" : "b-neutral";
+    return `<span class="badge ${cls}">${esc(status.replace(/_/g, " "))}${alert ? " · alert" : ""}</span>`;
+  }
+  function keyPanel(message) {
+    app.innerHTML = `<div class="keybox">
+      <h2 style="margin-top:0">Collector key</h2>
+      <p>${esc(message)} Enter the ingest key for your project (the value after <span class="mono">project=</span> in <span class="mono">VOICETOLL_INGEST_KEYS</span>). It is kept only in this browser.</p>
+      <form id="keyForm"><input type="password" id="keyInput" autocomplete="off" placeholder="e.g. dev-key" value="${esc(getKey())}">
+      <button class="primary" type="submit">Save</button></form></div>`;
+    document.getElementById("keyForm").onsubmit = (e) => { e.preventDefault(); setKey(document.getElementById("keyInput").value.trim()); render(); };
+    document.getElementById("keyInput").focus();
+  }
+
+  function freshnessBadge(status) {
+    const cls = status === "verified" || status === "rate_card" ? "b-ok" : status === "stale" ? "b-warn"
+      : status === "seed" || status === "imported" || status === "not_in_catalog" ? "b-bad" : "b-neutral";
+    const label = { rate_card: "your rate card", not_in_catalog: "not in catalog" }[status] || status;
+    return `<span class="badge ${cls}">${esc(label)}</span>`;
+  }
+  function pricesSection(p) {
+    const rows = p?.rows || [];
+    let html = `<h2>Price data <span class="sub">rates behind the last 7 days' estimates</span></h2>`;
+    if (p?.rate_card_error) {
+      html += `<div class="error">Rate card file could not be loaded, so the previous rates are still in use: ${esc(p.rate_card_error)}</div>`;
+    }
+    if (!rows.length) {
+      html += `<div class="empty">Not checked yet. The collector checks price freshness shortly after it starts and then every hour.</div>`;
+    } else {
+      html += `<div class="tablewrap"><table><thead><tr><th>Provider · model</th><th>Price status</th><th>Last verified</th>
+        <th class="num">On voice-prices rate</th><th class="num">On your rate card</th></tr></thead><tbody>
+        ${rows.map((r) => `<tr><td>${esc(r.provider)} <span class="muted">· ${esc(r.model)}</span></td>
+          <td>${freshnessBadge(r.status)}</td>
+          <td>${r.last_verified ? `${esc(r.last_verified)} <span class="muted">(${num(r.age_days, 0)} days)</span>` : `<span class="muted">—</span>`}</td>
+          <td class="num">${usd(r.list_spend_usd)}</td><td class="num">${usd(r.rate_card_spend_usd)}</td></tr>`).join("")}
+        </tbody></table></div>`;
+    }
+    const last = p?.last_auto_reprice;
+    const mine = last && last.projects && Object.values(last.projects)[0];
+    if (last && mine) {
+      const why = (last.reason || []).map((r) => r === "rate_card_version" ? "rate card" : "voice-prices version").join(" and ");
+      html += `<p class="muted" style="margin:8px 2px 0">Last automatic reprice ${esc(last.at.replace("T", " "))} UTC after a ${esc(why)} change:
+        ${num(mine.events_changed, 0)} of ${num(mine.events_checked, 0)} events re-costed since ${esc(last.since_day)}, total ${mine.delta_usd >= 0 ? "+" : "−"}${usd(Math.abs(mine.delta_usd))}.</p>`;
+    } else if (p && p.auto_reprice_days === 0) {
+      html += `<p class="muted" style="margin:8px 2px 0">Automatic repricing is off (VOICETOLL_AUTO_REPRICE_DAYS=0).</p>`;
+    }
+    return html;
+  }
+
+  // ---------- views ----------
+  async function renderDay(day) {
+    const [calls, providers, components, models, coverage, highlights, recon, prices] = await Promise.all([
+      api(`/v1/calls?day=${day}`),
+      api(`/v1/breakdown/provider?day=${day}`),
+      api(`/v1/breakdown/component?day=${day}`),
+      api(`/v1/breakdown/model?day=${day}`),
+      api(`/v1/coverage?day=${day}`),
+      api(`/v1/highlights?days=7`),
+      api(`/v1/recon?days=14`),
+      api(`/v1/prices`),
+    ]);
+    document.getElementById("projectLabel").textContent = calls?.project ? `project ${calls.project}` : "";
+    const list = calls?.calls || [];
+    const total = (providers?.rows || []).reduce((s, r) => s + (r.cost_usd || 0), 0);
+    const minutes = list.reduce((s, c) => s + (c.minutes || 0), 0);
+    const unpriced = coverage?.unpriced_share || 0;
+    const spool = coverage?.spool_files || 0;
+
+    let html = `<div class="crumb">Day ${esc(day)} (UTC)</div>`;
+    html += `<div class="tiles" style="margin-top:8px">
+      ${tile("Estimated cost", usd(total))}
+      ${tile("Calls", num(list.length, 0), list.length ? `${num(coverage?.events || 0, 0)} events` : "")}
+      ${tile("Call minutes", num(minutes, 1))}
+      ${tile("Cost per minute", minutes > 0 ? usd(total / minutes) : "—", "all calls this day")}
+      ${tile("Unpriced usage", pct(unpriced), unpriced > 0 ? "add rate-card entries, then reprice" : "every unit has a price", unpriced > 0 ? "bad" : "")}
+      ${tile("Spooled batches", num(spool, 0), spool > 0 ? "database was unavailable; run replay-spool" : "none waiting", spool > 0 ? "warn" : "")}
+    </div>`;
+
+    html += `<h2>Where the money went</h2><div class="grid2">
+      <div class="card"><h3>By provider</h3>${hbars(providers?.rows || [])}</div>
+      <div class="card"><h3>By stage</h3>${hbars(components?.rows || [], { color: (r) => COMP_COLORS[r.key] || "var(--other)" })}</div>
+      <div class="card"><h3>By model</h3>${hbars(models?.rows || [])}</div>
+    </div>`;
+
+    html += `<h2>Calls <span class="sub">${list.length ? "click a call for turns and latency" : ""}</span></h2>`;
+    if (!list.length) {
+      html += `<div class="empty">No calls on ${esc(day)}. Days are UTC, so evening calls in the Americas land on the next day.</div>`;
+    } else {
+      html += `<div class="tablewrap"><table id="callsTable"><thead><tr>
+        <th class="sortable" data-k="started_epoch">Started</th><th>Call</th><th>Tenant</th>
+        <th class="sortable num" data-k="minutes">Minutes</th><th class="sortable num" data-k="turns">Turns</th>
+        <th class="sortable num" data-k="cost_usd">Cost</th><th class="sortable num" data-k="cost_per_minute">$/min</th><th class="num">Unpriced</th><th class="noprint"></th>
+        </tr></thead><tbody></tbody></table></div>`;
+    }
+
+    const hl = highlights?.highlights || [];
+    html += `<h2>Highlights <span class="sub">last 7 days</span></h2>`;
+    html += hl.length ? `<div class="hl">${hl.map((h) => `<div class="item">
+        <span class="badge b-neutral">${esc(h.rule_id.replace(/_/g, " "))}</span>
+        <div><div class="t">${esc(h.title)}</div><div class="d">${esc(h.detail)}</div></div>
+        <div class="usd num">${h.dollars_at_stake ? usd(h.dollars_at_stake) : ""}</div></div>`).join("")}</div>`
+      : `<div class="empty">Nothing stands out in the last 7 days.</div>`;
+
+    html += pricesSection(prices);
+
+    const runs = recon?.runs || [];
+    html += `<h2>Estimate vs provider bill <span class="sub">reconciliation, last 14 days</span></h2>`;
+    if (!runs.length) {
+      html += `<div class="empty">No reconciliation runs yet. After a day ends (UTC), run <span class="mono">g3_daily.py</span> or <span class="mono">voicetoll-collector reconcile</span>.</div>`;
+    } else {
+      html += `<div class="tablewrap"><table><thead><tr><th>Day</th><th>Provider</th><th>Scope</th>
+        <th class="num">Estimate</th><th class="num">Provider</th><th class="num">$ drift</th><th>Unit drift</th><th>Status</th></tr></thead><tbody>
+        ${runs.map((r) => {
+          const d = r.detail || {};
+          const unitDrift = Object.entries(d.unit_drift || {}).map(([u, v]) => {
+            const est = (d.estimated_units || {})[u], rep = (d.reported_units || {})[u];
+            return `<div title="estimate ${num(est, 1)} · provider ${num(rep, 1)}">${esc(unitLabel(u))} ${pct(v)}</div>`;
+          }).join("") || `<span class="muted">—</span>`;
+          return `<tr><td class="mono">${esc(r.day)}</td><td>${esc(r.provider)}</td><td class="muted">${esc(d.scope || "")}</td>
+            <td class="num">${usd(r.estimated_usd)}</td><td class="num">${r.reported_usd === null ? "—" : usd(r.reported_usd)}</td>
+            <td class="num">${pct(r.drift_pct)}</td><td>${unitDrift}</td><td>${statusBadge(r.status, d.alert)}</td></tr>`;
+        }).join("")}</tbody></table></div>`;
+    }
+    html += `<div class="foot">Generated ${esc(new Date().toLocaleString())}. Estimates use your rate cards first, then voice-prices. Provider numbers come from their usage APIs.</div>`;
+    app.innerHTML = html;
+
+    if (list.length) {
+      let sortKey = "started_epoch", desc = true;
+      const tbody = document.querySelector("#callsTable tbody");
+      const draw = () => {
+        const rows = [...list].sort((a, b) => ((a[sortKey] ?? -1) - (b[sortKey] ?? -1)) * (desc ? -1 : 1));
+        tbody.innerHTML = rows.map((c) => `<tr class="click" data-id="${esc(c.session_id)}">
+          <td class="num" title="${esc(utcTime(c.started_epoch))}">${esc(localTime(c.started_epoch))}</td>
+          <td class="mono" title="${esc(c.session_id)}">${esc(shortId(c.session_id))}</td>
+          <td class="mono muted" title="${esc(c.tenant_id)}">${esc(shortId(c.tenant_id, 12))}</td>
+          <td class="num">${num(c.minutes, 1)}</td><td class="num">${num(c.turns, 0)}</td>
+          <td class="num">${usd(c.cost_usd)}</td><td class="num">${c.cost_per_minute === null ? "—" : usd(c.cost_per_minute)}</td>
+          <td class="num">${c.unpriced_lines ? `<span class="badge b-bad">${c.unpriced_lines}</span>` : `<span class="muted">0</span>`}</td>
+          <td class="noprint"><button class="audit-btn" data-id="${esc(c.session_id)}" title="Compare this call with each provider's own usage log">Audit</button></td></tr>`).join("");
+        tbody.querySelectorAll("tr.click").forEach((tr) => tr.onclick = () => go({ day, call: tr.dataset.id }));
+        tbody.querySelectorAll("button.audit-btn").forEach((b) => b.onclick = (e) => { e.stopPropagation(); go({ day, call: b.dataset.id, audit: true }); });
+      };
+      document.querySelectorAll("#callsTable th.sortable").forEach((th) => th.onclick = () => {
+        if (sortKey === th.dataset.k) desc = !desc; else { sortKey = th.dataset.k; desc = true; }
+        draw();
+      });
+      draw();
+    }
+  }
+
+  async function renderCall(day, id) {
+    const s = await api(`/v1/sessions/${encodeURIComponent(id)}`);
+    if (!s) { app.innerHTML = `<p class="back noprint"><a href="#${projectPrefix()}day=${esc(day)}">&larr; Back to ${esc(day)}</a></p><div class="empty">Call not found: <span class="mono">${esc(id)}</span></div>`; return; }
+    // "turn" events carry turn timing only (no provider, no cost); they show up under Latency instead
+    const comps = Object.entries(s.components || {}).filter(([, c]) => c.provider || (c.cost_usd || 0) > 0);
+    const total = s.cost_usd || 0;
+    let html = `<p class="back noprint"><a href="#${projectPrefix()}day=${esc(day)}">&larr; Back to ${esc(day)}</a></p>
+      <div class="crumb">Call <span class="mono">${esc(s.session_id)}</span> · started ${esc(utcTime(s.started_epoch))} · tenant <span class="mono">${esc(shortId(s.tenant_id, 16))}</span></div>
+      <div class="tiles" style="margin-top:8px">
+        ${tile("Estimated cost", usd(total))}
+        ${tile("Minutes", num(s.minutes, 2))}
+        ${tile("Cost per minute", s.cost_per_minute === null ? "—" : usd(s.cost_per_minute))}
+        ${tile("Turns", num(s.turns, 0), `${num(s.events, 0)} events`)}
+        ${tile("Unpriced lines", num(s.unpriced_lines, 0), s.unpriced_lines ? "add rate-card entries, then reprice" : "", s.unpriced_lines ? "bad" : "")}
+      </div>`;
+
+    html += `<h2>By stage</h2><div class="tablewrap"><table><thead><tr><th>Stage</th><th>Provider · model</th><th>Usage</th><th class="num">Cost</th><th class="num">Share</th></tr></thead><tbody>
+      ${comps.map(([name, c]) => `<tr><td><span class="legend" style="margin:0"><span><i style="background:${COMP_COLORS[name] || "var(--other)"}"></i>${esc(name.toUpperCase())}</span></span></td>
+        <td>${esc(c.provider || "—")} <span class="muted">· ${esc(c.model || "—")}</span></td>
+        <td>${Object.entries(c.units || {}).map(([u, v]) => `<div>${esc(unitLabel(u))}: <span class="num">${num(v, 1)}</span></div>`).join("") || "—"}</td>
+        <td class="num">${usd(c.cost_usd)}</td><td class="num">${total > 0 ? pct(c.cost_usd / total, 0) : "—"}</td></tr>`).join("")}
+      </tbody></table></div>`;
+
+    const turns = Object.entries(s.cost_by_turn || {}).sort((a, b) => Number(a[0]) - Number(b[0]));
+    html += `<h2>Cost per turn</h2>`;
+    if (!turns.length) {
+      html += `<div class="empty">No turn numbers were recorded for this call.</div>`;
+    } else {
+      const max = Math.max(...turns.map(([, c]) => Object.values(c).reduce((a, b) => a + b, 0)), 1e-12);
+      const names = [...new Set(turns.flatMap(([, c]) => Object.keys(c)))];
+      html += `<div class="card"><div class="legend">${names.map((n) => `<span><i style="background:${COMP_COLORS[n] || "var(--other)"}"></i>${esc(n.toUpperCase())}</span>`).join("")}</div>
+        ${turns.map(([t, c]) => {
+          const sum = Object.values(c).reduce((a, b) => a + b, 0);
+          return `<div class="hbar"><div class="name">Turn ${esc(t)}</div>
+            <div class="stack" style="width:${(sum / max * 100).toFixed(1)}%">${names.map((n) => c[n] ? `<span title="${esc(n)} ${usd(c[n])}" style="width:${(c[n] / sum * 100).toFixed(2)}%;background:${COMP_COLORS[n] || "var(--other)"}"></span>` : "").join("")}</div>
+            <div class="num">${usd(sum)}</div></div>`;
+        }).join("")}</div>`;
+    }
+
+    const lat = Object.entries(s.latency_ms || {});
+    html += `<h2>Latency <span class="sub">per stage, across the call's turns</span></h2>`;
+    html += lat.length ? `<div class="tablewrap"><table><thead><tr><th>Measure</th><th class="num">p50</th><th class="num">p95</th><th class="num">Samples</th></tr></thead><tbody>
+      ${lat.map(([k, v]) => `<tr><td>${esc(LATENCY_LABELS[k] || k)} <span class="muted mono">${esc(k)}</span></td><td class="num">${ms(v.p50)}</td><td class="num">${ms(v.p95)}</td><td class="num">${num(v.n, 0)}</td></tr>`).join("")}
+      </tbody></table></div>` : `<div class="empty">No latency was reported for this call.</div>`;
+    html += `<h2 id="auditHead">Check against providers <span class="sub">each provider's own usage log for this call's minutes</span></h2>
+      <div id="auditBox"><div class="card"><p class="muted" style="margin:0 0 10px">Asks ElevenLabs, Deepgram and OpenAI what they logged between just before this call's first event and just after its last, and compares it with what voiceToll recorded. Uses the reconciliation keys. Provider logs can lag a few minutes after a call ends.</p>
+      <button class="primary noprint" id="auditBtn">Audit against providers</button></div></div>`;
+    html += `<div class="foot">Generated ${esc(new Date().toLocaleString())}.</div>`;
+    app.innerHTML = html;
+    document.getElementById("auditBtn").onclick = () => runAudit(id);
+    if (route().audit) { runAudit(id); document.getElementById("auditHead").scrollIntoView({ block: "start" }); }
+  }
+
+  const AUDIT_STATUS = {
+    ok: ["b-ok", "matches"], drift: ["b-bad", "gap"], no_provider_data: ["b-neutral", "no provider data yet"],
+    fetch_failed: ["b-bad", "fetch failed"], skipped_no_key: ["b-neutral", "no recon key"],
+    no_account: ["b-neutral", "no account"], no_connector: ["b-neutral", "no connector"],
+  };
+  async function runAudit(id) {
+    const box = document.getElementById("auditBox");
+    box.innerHTML = `<div class="card muted">Asking the providers…</div>`;
+    let a;
+    try { a = await api(`/v1/audit/${encodeURIComponent(id)}`); }
+    catch (err) { box.innerHTML = `<div class="error">Audit failed: ${esc(err.message)}</div>`; return; }
+    if (!a) { box.innerHTML = `<div class="empty">No events for this call.</div>`; return; }
+    const w = a.window;
+    const rows = a.providers.map((p) => {
+      const [cls, label] = AUDIT_STATUS[p.status] || ["b-neutral", p.status];
+      const cmp = Object.entries(p.comparison || {});
+      const cells = cmp.length ? cmp.map(([u, c]) => `<div>${esc(u === "usd" ? "Dollars" : unitLabel(u))}: <span class="num">${u === "usd" ? usd(c.voicetoll) : num(c.voicetoll, 1)}</span> vs <span class="num">${u === "usd" ? usd(c.provider) : num(c.provider, 1)}</span> <span class="muted">(${c.drift === null ? "—" : pct(c.drift)})</span></div>`).join("") : `<span class="muted">—</span>`;
+      const items = (p.reported?.items || []).length;
+      const notes = (p.notes || []).map((n) => `<div class="muted" style="font-size:12px">${esc(n)}</div>`).join("");
+      return `<tr><td style="font-weight:500">${esc(p.provider)}</td><td>${cells}${notes}</td><td class="num">${items || "—"}</td>
+        <td><span class="badge ${cls}">${esc(label)}</span></td></tr>`;
+    }).join("");
+    box.innerHTML = `<div class="tablewrap"><table><thead><tr><th>Provider</th><th>voiceToll vs provider (gap)</th><th class="num">Provider requests</th><th>Result</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <p class="muted" style="font-size:12px">Window ${esc(w.start)} to ${esc(w.end)} UTC. ${esc(a.caveat)} <button class="noprint" id="auditAgain" style="margin-left:6px">Run again</button></p>`;
+    document.getElementById("auditAgain").onclick = () => runAudit(id);
+  }
+
+  async function render() {
+    const { day, call } = route();
+    document.getElementById("dayInput").value = day;
+    try {
+      if (call) await renderCall(day, call); else await renderDay(day);
+    } catch (err) {
+      if (err instanceof AuthError) keyPanel(getKey() ? "The collector rejected this key." : "This collector needs a key.");
+      else app.innerHTML = `<div class="error">Could not load the report: ${esc(err.message)}. Is the collector running?</div>`;
+    }
+  }
+
+  // ---------- controls ----------
+  document.getElementById("dayInput").onchange = (e) => e.target.value && go({ day: e.target.value });
+  document.getElementById("prevDay").onclick = () => go({ day: shiftDay(route().day, -1) });
+  document.getElementById("nextDay").onclick = () => go({ day: shiftDay(route().day, 1) });
+  document.getElementById("todayBtn").onclick = () => go({ day: todayUTC() });
+  document.getElementById("refreshBtn").onclick = () => render();
+  document.getElementById("printBtn").onclick = () => window.print();
+  document.getElementById("keyBtn").onclick = () => keyPanel("Change the key used to read this collector.");
+  const themeBtn = document.getElementById("themeBtn");
+  const syncTheme = () => { themeBtn.textContent = document.documentElement.dataset.theme === "light" ? "Dark" : "Light"; };
+  themeBtn.onclick = () => { const t = document.documentElement.dataset.theme === "light" ? "dark" : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("voicetoll.theme", t); } catch {} syncTheme(); };
+  syncTheme();
+  if (adminKey()) document.getElementById("adminLink").textContent = "← Admin";
+  window.addEventListener("hashchange", render);
+  render();
+})();
+</script>
+</body>
+</html>

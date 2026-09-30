@@ -1,0 +1,74 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": { "type": "postgres", "uid": "voicetoll-pg" },
+      "fieldConfig": { "defaults": { "unit": "currencyUSD" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "id": 1,
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "SELECT day, SUM(cost_usd::float) AS cost_usd FROM tenant_day GROUP BY day ORDER BY day",
+          "refId": "A"
+        }
+      ],
+      "title": "Daily cost (tenant_day)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "voicetoll-pg" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "id": 2,
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "SELECT tenant_id, SUM(cost_usd::float) AS cost_usd FROM tenant_day GROUP BY tenant_id ORDER BY cost_usd DESC LIMIT 20",
+          "refId": "A"
+        }
+      ],
+      "title": "Top tenants by cost",
+      "type": "table"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "voicetoll-pg" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
+      "id": 3,
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "SELECT session_id, tenant_id, minutes, cost_usd::float AS cost_usd, p95_ttfb_ms FROM call_rollup ORDER BY cost_usd DESC LIMIT 50",
+          "refId": "A"
+        }
+      ],
+      "title": "Call rollups",
+      "type": "table"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "voicetoll-pg" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+      "id": 4,
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "SELECT day, rule_id, title, dollars_at_stake::float AS dollars_at_stake, status FROM highlight ORDER BY dollars_at_stake DESC LIMIT 50",
+          "refId": "A"
+        }
+      ],
+      "title": "Highlights",
+      "type": "table"
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["voicetoll"],
+  "templating": { "list": [] },
+  "time": { "from": "now-7d", "to": "now" },
+  "title": "voiceToll Overview",
+  "uid": "voicetoll-overview",
+  "version": 1
+}

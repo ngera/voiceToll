@@ -1,0 +1,34 @@
+{
+  "provider": "elevenlabs",
+  "source": "docs",
+  "source_url": "https://elevenlabs.io/docs/api-reference/usage/get",
+  "note": "Shape from the character-stats reference (deprecated endpoint); values invented.",
+  "day": "2026-09-28",
+  "options": {},
+  "responses": [
+    {
+      "path": "/v1/usage/character-stats",
+      "body": {
+        "time": [
+          1790553600000
+        ],
+        "usage": {
+          "All": [
+            1053
+          ]
+        }
+      }
+    }
+  ],
+  "expected": {
+    "usd": null,
+    "units": {
+      "characters": 1053.0
+    }
+  },
+  "expected_query": {
+    "metric": "tts_characters",
+    "aggregation_interval": "cumulative",
+    "breakdown_type": "none"
+  }
+}

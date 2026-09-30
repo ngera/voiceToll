@@ -1,0 +1,41 @@
+name: ci
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: voicetoll
+          POSTGRES_PASSWORD: voicetoll
+          POSTGRES_DB: voicetoll
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U voicetoll -d voicetoll"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+      - name: Sync workspace
+        run: |
+          uv sync
+          uv pip install "psycopg[binary]>=3.2"
+      - name: Ruff
+        run: uv run ruff check . && uv run ruff format --check .
+      - name: Pytest
+        run: uv run pytest
+      - name: Pytest Postgres
+        run: uv run pytest tests/test_postgres.py -q
+        env:
+          VOICETOLL_DB_URL: postgresql://voicetoll:voicetoll@localhost:5432/voicetoll

@@ -1,0 +1,32 @@
+# Private rate cards. They override voice-prices list prices for this project.
+# Copy to config/rate_cards.yaml and edit. The collector reloads it on restart.
+#
+# Each rate needs provider, meter, and either:
+#   unit_price + unit_size   (absolute price, e.g. $0.04 per 1,000 characters)
+#   multiplier               (fraction of the voice-prices list price, e.g. 0.8 for a 20% discount)
+# model: "*" matches every model of that provider.
+# reviewed: the date someone last checked the rate against the contract or plan. The admin UI tags an entry
+#   "stale" when it is older than VOICETOLL_RATE_CARD_REVIEW_DAYS (default 90), and "not reviewed" without one.
+# Meters are voice-prices Usage names: characters, audio_input_seconds, audio_output_seconds,
+# input_tokens, output_tokens, cache_read_tokens, input_audio_tokens, output_audio_tokens,
+# agent_minutes, telephony_minutes.
+
+version: "2026-09-27"
+
+rates:
+  - provider: elevenlabs
+    model: eleven_flash_v2_5
+    meter: characters
+    unit_price: 0.04
+    unit_size: 1000
+    effective_from: "2026-09-01"
+    reviewed: "2026-09-27"
+    note: "Example: plan rate lower than the published API rate"
+
+  - provider: deepgram
+    model: "*"
+    meter: audio_input_seconds
+    multiplier: 0.8
+    effective_from: "2026-01-01"
+    reviewed: "2026-09-27"
+    note: "Example: 20% volume discount on all Deepgram STT"

@@ -1,0 +1,16 @@
+apiVersion: 1
+
+datasources:
+  - name: VoiceToll Postgres
+    uid: voicetoll-pg
+    type: postgres
+    access: proxy
+    url: postgres:5432
+    user: voicetoll
+    secureJsonData:
+      password: voicetoll
+    jsonData:
+      database: voicetoll
+      sslmode: disable
+      postgresVersion: 1600
+    isDefault: true

@@ -1,0 +1,34 @@
+# Reconciliation accounts: compare voiceToll's estimates with what each provider reports.
+# Copy to config/reconcile.yaml and point VOICETOLL_RECON_CONFIG at it.
+#
+# One entry per provider account, mapped to one voiceToll project.
+#   key_env  name of the environment variable that holds the key (keys never go in this file)
+#   scope    dedicated: the account (or provider-side project) carries only the voice traffic voiceToll
+#            sees, so drift is meaningful and can alert.
+#            shared: the account also carries other traffic; drift is recorded but never alerts.
+#   options  provider-side filters that narrow the bill to the voice traffic.
+#
+# What each connector compares:
+#   openai      dollars from the Costs API (needs an organization admin key)
+#   elevenlabs  characters from usage stats (no per-day dollars available)
+#   deepgram    audio seconds from project usage (dollars too when the API returns a total cost)
+
+accounts:
+  - project: demo
+    provider: openai
+    key_env: VOICETOLL_RECON_OPENAI_KEY
+    scope: dedicated
+    options:
+      openai_project_id: proj_replace_me      # OpenAI project used only by the voice agent
+
+  - project: demo
+    provider: elevenlabs
+    key_env: VOICETOLL_RECON_ELEVENLABS_KEY
+    scope: dedicated                          # an ElevenLabs account used only by the voice agent
+
+  - project: demo
+    provider: deepgram
+    key_env: VOICETOLL_RECON_DEEPGRAM_KEY
+    scope: dedicated
+    options:
+      deepgram_project_id: replace-me         # Deepgram project used only by the voice agent

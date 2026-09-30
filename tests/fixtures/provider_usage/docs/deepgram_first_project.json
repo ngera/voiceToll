@@ -1,0 +1,48 @@
+{
+  "provider": "deepgram",
+  "source": "docs",
+  "source_url": "https://developers.deepgram.com/docs/using-logs-usage",
+  "note": "No project id configured: the key's first project is used.",
+  "day": "2026-09-28",
+  "options": {},
+  "responses": [
+    {
+      "path": "/v1/projects",
+      "body": {
+        "projects": [
+          {
+            "project_id": "p-first",
+            "name": "voicetoll-g3"
+          }
+        ]
+      }
+    },
+    {
+      "path": "/v1/projects/p-first/usage",
+      "body": {
+        "start": "2026-09-28",
+        "end": "2026-09-28",
+        "resolution": {
+          "units": "day",
+          "amount": 1
+        },
+        "results": [
+          {
+            "start": "2026-09-28",
+            "end": "2026-09-28",
+            "hours": 0.25,
+            "total_hours": 0.25,
+            "requests": 3
+          }
+        ]
+      }
+    }
+  ],
+  "expected": {
+    "usd": null,
+    "units": {
+      "audio_input_seconds": 900.0
+    }
+  },
+  "expected_query": {}
+}

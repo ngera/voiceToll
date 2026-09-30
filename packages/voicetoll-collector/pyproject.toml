@@ -1,0 +1,28 @@
+[project]
+name = "voicetoll-collector"
+version = "0.1.0.dev0"
+description = "voiceToll collector: prices, stores and summarizes voice AI usage events"
+requires-python = ">=3.11"
+license = "MIT"
+dependencies = [
+    "starlette>=0.37",
+    "uvicorn>=0.30",
+    "pydantic>=2.7",
+    "pyyaml>=6",
+    "voice-prices>=0.10",
+]
+
+[project.optional-dependencies]
+postgres = ["psycopg[binary]>=3.2"]
+otlp = ["opentelemetry-proto>=1.20", "protobuf>=4"]
+all = ["psycopg[binary]>=3.2", "opentelemetry-proto>=1.20", "protobuf>=4"]
+
+[project.scripts]
+voicetoll-collector = "voicetoll_collector.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/voicetoll_collector"]

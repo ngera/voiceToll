@@ -1,0 +1,18 @@
+__pycache__/
+*.py[cod]
+.venv/
+.env
+*.db
+*.db-journal
+spool/
+.pytest_cache/
+.ruff_cache/
+dist/
+build/
+*.egg-info/
+.DS_Store
+
+Claude outputs/
+
+config/reconcile.yaml
+config/rate_cards.yaml

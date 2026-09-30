@@ -1,0 +1,91 @@
+{
+  "provider": "openai",
+  "source": "docs",
+  "source_url": "https://developers.openai.com/api/reference/resources/admin/subresources/organization/subresources/usage",
+  "note": "Shape from the Costs API reference; values invented. Second page exercises next_page; the other project's cost must be ignored.",
+  "day": "2026-09-28",
+  "options": {
+    "openai_project_id": "proj_voice"
+  },
+  "responses": [
+    {
+      "path": "/v1/organization/costs",
+      "body": {
+        "object": "page",
+        "has_more": true,
+        "next_page": "page_AAA",
+        "data": [
+          {
+            "object": "bucket",
+            "start_time": 1790553600,
+            "end_time": 1790640000,
+            "results": [
+              {
+                "object": "organization.costs.result",
+                "amount": {
+                  "value": 0.0123,
+                  "currency": "usd"
+                },
+                "line_item": null,
+                "project_id": "proj_voice",
+                "quantity": null,
+                "quantity_unit": null,
+                "api_key_id": null
+              },
+              {
+                "object": "organization.costs.result",
+                "amount": {
+                  "value": 4.5,
+                  "currency": "usd"
+                },
+                "line_item": null,
+                "project_id": "proj_other",
+                "quantity": null,
+                "quantity_unit": null,
+                "api_key_id": null
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "path": "/v1/organization/costs",
+      "body": {
+        "object": "page",
+        "has_more": false,
+        "next_page": null,
+        "data": [
+          {
+            "object": "bucket",
+            "start_time": 1790553600,
+            "end_time": 1790640000,
+            "results": [
+              {
+                "object": "organization.costs.result",
+                "amount": {
+                  "value": 0.0077,
+                  "currency": "usd"
+                },
+                "line_item": null,
+                "project_id": "proj_voice",
+                "quantity": null,
+                "quantity_unit": null,
+                "api_key_id": null
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "expected": {
+    "usd": 0.02,
+    "units": {}
+  },
+  "expected_query": {
+    "project_ids": "proj_voice",
+    "group_by": "project_id",
+    "bucket_width": "1d"
+  }
+}
