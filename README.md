@@ -6,6 +6,8 @@ Voice agents run several meters at once (speech-to-text, an LLM, text-to-speech,
 
 ![voiceToll admin UI](docs/images/admin-overview.png)
 
+![voiceToll admin UI](docs/images/admin-overview-2.png)
+
 **Status:** see [13 Project status](docs/13_STATUS.md).
 
 ## Repository layout
