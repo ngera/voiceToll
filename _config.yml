@@ -1,0 +1,22 @@
+remote_theme: ngera/caliper-pages
+plugins:
+  - jekyll-remote-theme
+
+# Only README.md and docs/ should become web pages.
+exclude:
+  - "Claude outputs"
+  - CLAUDE.md
+  - config
+  - documents
+  - eval
+  - pipeline
+  - plugins
+  - products
+  - report_templates
+  - scripts
+  - requirements.txt
+  - pyproject.toml
+  - Dockerfile
+  - docker-compose.yml
+  - run_weekly.bat
+  - .env.example
