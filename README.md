@@ -4,6 +4,36 @@ Per-call, per-customer cost and latency for voice AI apps in production, without
 
 Voice agents run several meters at once (speech-to-text, an LLM, text-to-speech, telephony), each billed in a different unit. Frameworks such as LiveKit Agents and Pipecat already report usage and timings, but not dollars. voiceToll turns those events into dollars using current, dated prices ([voice-prices](https://github.com/mahimailabs/voice-prices) plus your own rate cards), attributes them to tenants, users and features, and stores raw units so history can be re-priced.
 
+### Where voiceToll calculates cost in a cascaded agent
+
+A cascaded (pipeline) voice agent runs several stages per turn. Green stages are priced from framework metrics; VAD and turn detection are latency only; telephony and platform fees need an explicit `record()` (adapters do not see them).
+
+```mermaid
+flowchart LR
+  Caller["Caller\nphone or browser"] --> Tel
+
+  subgraph pipeline["One cascaded turn · LiveKit / Pipecat"]
+    direction LR
+    Tel["Telephony / transport\n$ via record()\nminutes · session"]
+    VAD["VAD / turn detect\nlatency only\nno provider bill"]
+    STT["STT\n$ from metrics\naudio seconds"]
+    LLM["LLM\n$ from metrics\ninput / output tokens"]
+    TTS["TTS\n$ from metrics\ncharacters · audio"]
+    Tel --> VAD --> STT --> LLM --> TTS
+  end
+
+  TTS --> Reply["Caller hears reply"]
+
+  classDef priced fill:#dcefe4,stroke:#2f6f4e,color:#143526
+  classDef optional fill:#e8f0fa,stroke:#3a5f8a,color:#1a3048
+  classDef latency fill:#f0f0f0,stroke:#888,color:#333,stroke-dasharray: 4 3
+  class STT,LLM,TTS priced
+  class Tel optional
+  class VAD latency
+```
+
+Adapters copy usage and timings into a background buffer (under 20 µs on the call path). The collector turns those raw units into dollars with voice-prices and your rate cards — never on the call path. Full system diagrams: [01 Architecture](docs/01_ARCHITECTURE.md). Speech-to-speech / realtime models replace STT→LLM→TTS with one `s2s` stage ([10 Speech to speech](docs/10_SPEECH_TO_SPEECH.md)).
+
 ![voiceToll admin UI](docs/images/admin-overview.png)
 
 ![voiceToll admin UI](docs/images/admin-overview-2.png)
