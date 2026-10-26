@@ -6,30 +6,47 @@ Voice agents run several meters at once (speech-to-text, an LLM, text-to-speech,
 
 ### Where voiceToll calculates cost in a cascaded agent
 
-A cascaded (pipeline) voice agent runs several stages per turn. Green stages are priced from framework metrics; VAD and turn detection are latency only; telephony and platform fees need an explicit `record()` (adapters do not see them).
+A cascaded (pipeline) voice agent runs several stages per turn. Color key: **solid green** = priced from framework metrics; **solid amber** = cost only if you call `record()` (adapters do not see telephony/platform); **dashed gray** = latency only, no dollars.
 
 ```mermaid
-flowchart LR
-  Caller["Caller\nphone or browser"] --> Tel
+%%{init: {
+  "flowchart": {"htmlLabels": true, "nodeSpacing": 40, "rankSpacing": 55, "padding": 16, "useMaxWidth": false},
+  "themeVariables": {"fontSize": "18px", "fontFamily": "ui-sans-serif, system-ui, sans-serif"}
+}}%%
+flowchart TB
+  Caller["Caller — phone or browser"]
 
-  subgraph pipeline["One cascaded turn · LiveKit / Pipecat"]
+  Tel["TELEPHONY / TRANSPORT\n$ via record() · minutes or session\nadapters do not capture this"]
+  VAD["VAD / TURN DETECT\nlatency only · no provider bill"]
+  STT["STT — SPEECH TO TEXT\n$ from metrics · audio seconds"]
+  LLM["LLM\n$ from metrics · input and output tokens"]
+  TTS["TTS — TEXT TO SPEECH\n$ from metrics · characters or audio"]
+  Reply["Caller hears reply"]
+
+  Caller --> Tel --> VAD --> STT --> LLM --> TTS --> Reply
+
+  subgraph legend["Color key"]
     direction LR
-    Tel["Telephony / transport\n$ via record()\nminutes · session"]
-    VAD["VAD / turn detect\nlatency only\nno provider bill"]
-    STT["STT\n$ from metrics\naudio seconds"]
-    LLM["LLM\n$ from metrics\ninput / output tokens"]
-    TTS["TTS\n$ from metrics\ncharacters · audio"]
-    Tel --> VAD --> STT --> LLM --> TTS
+    L1["Green — $ from metrics"]
+    L2["Amber — $ via record()"]
+    L3["Dashed — latency only"]
   end
 
-  TTS --> Reply["Caller hears reply"]
+  classDef priced fill:#0b7a45,stroke:#064d2b,color:#ffffff,stroke-width:2px
+  classDef optional fill:#c45c00,stroke:#7a3500,color:#ffffff,stroke-width:2px
+  classDef latency fill:#f5f5f5,stroke:#6b6b6b,color:#222222,stroke-width:2px,stroke-dasharray:8 5
+  classDef endpoint fill:#1a1a1a,stroke:#1a1a1a,color:#ffffff,stroke-width:2px
+  classDef legPriced fill:#0b7a45,stroke:#064d2b,color:#ffffff
+  classDef legOptional fill:#c45c00,stroke:#7a3500,color:#ffffff
+  classDef legLatency fill:#f5f5f5,stroke:#6b6b6b,color:#222222,stroke-dasharray:8 5
 
-  classDef priced fill:#dcefe4,stroke:#2f6f4e,color:#143526
-  classDef optional fill:#e8f0fa,stroke:#3a5f8a,color:#1a3048
-  classDef latency fill:#f0f0f0,stroke:#888,color:#333,stroke-dasharray: 4 3
   class STT,LLM,TTS priced
   class Tel optional
   class VAD latency
+  class Caller,Reply endpoint
+  class L1 legPriced
+  class L2 legOptional
+  class L3 legLatency
 ```
 
 Adapters copy usage and timings into a background buffer (under 20 µs on the call path). The collector turns those raw units into dollars with voice-prices and your rate cards — never on the call path. Full system diagrams: [01 Architecture](docs/01_ARCHITECTURE.md). Speech-to-speech / realtime models replace STT→LLM→TTS with one `s2s` stage ([10 Speech to speech](docs/10_SPEECH_TO_SPEECH.md)).
