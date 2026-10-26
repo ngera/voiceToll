@@ -16,21 +16,14 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/ngera/caliper@main/accents.css">
 <link rel="stylesheet" href="{{ '/assets/css/prose.css' | relative_url }}">
 <style>
-  /* Mermaid: hide fenced source until converted; keep diagrams large and readable. */
+  /* Mermaid: hide fenced source until converted. */
   pre:has(> code.language-mermaid) { visibility: hidden; min-height: 4rem; }
   .mermaid {
     text-align: center;
-    margin: 2rem 0;
+    margin: 1.5rem 0;
     overflow-x: auto;
-    padding: 0.5rem 0;
   }
-  /* Prefer intrinsic diagram size over shrinking into a cramped column. */
-  .mermaid svg {
-    max-width: none;
-    width: min(100%, 52rem);
-    height: auto;
-    min-height: 28rem;
-  }
+  .mermaid svg { max-width: 100%; height: auto; }
 </style>
 </head>
 <body>
@@ -83,19 +76,9 @@
 
   mermaid.initialize({
     startOnLoad: false,
-    theme: dark ? 'dark' : 'base',
+    theme: dark ? 'dark' : 'neutral',
     securityLevel: 'strict',
-    flowchart: {
-      htmlLabels: true,
-      curve: 'basis',
-      nodeSpacing: 36,
-      rankSpacing: 48,
-      padding: 12,
-      useMaxWidth: false,
-    },
-    themeVariables: {
-      fontSize: '16px',
-    },
+    flowchart: { htmlLabels: true, curve: 'basis' },
   });
 
   document.querySelectorAll('pre > code.language-mermaid').forEach((code) => {
