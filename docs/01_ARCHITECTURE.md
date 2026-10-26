@@ -470,10 +470,4 @@ Eleven decisions are settled; four questions remain for G3 / publish.
 | Read-only admin UI in the collector, behind a separate admin key | Prices, cost across projects and collector health are collector-wide, so they need a key wider than a project's ingest key; same static-page pattern as the report, no second deployable |
 | Framework adapters are modules behind a registry; provider names normalized in one shared place | The collector stays framework-neutral; a new framework is a module or package, and every framework spells a provider the same way for pricing and reconciliation |
 
-**Open questions**
 
-- [ ] First design partner: which real LiveKit or Pipecat app runs the G3 week?
-- [x] Cost sampling: require 100% of voice events for cost; only detailed traces may be sampled (decided).
-- [ ] Revenue input for margin: a per-tenant price table in the collector, or left to the team's BI? (Needed for the "unprofitable" highlight.)
-- [ ] Contribute voice usage extractors upstream to voice-prices, or keep mappers in voiceToll? Also open: finance-facing margin and pricing views, by extending the built-in report or pairing it with Metabase?
-- [ ] Name clearance: confirm "voiceToll" is free on PyPI, GitHub and the USPTO trademark search before publishing (renamed from voicemeter, which was too close to VB-Audio's Voicemeeter). Licence is MIT.

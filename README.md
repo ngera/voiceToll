@@ -116,4 +116,4 @@ Discussion copy of the architecture doc (source of truth is `docs/01_ARCHITECTUR
 
 ## Name and licence
 
-MIT licence. Renamed from "voicemeter", which was too close to VB-Audio's Voicemeeter. Confirm "voiceToll" on PyPI, GitHub and the USPTO trademark search before publishing.
+MIT licence. 
